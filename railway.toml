@@ -23,8 +23,6 @@
   path = "/"
   port = 3000
   
-[[customDomains]]
-  name = "live-draft-board-railway.app"
   
 [checks]
   type = "readiness"
