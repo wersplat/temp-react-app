@@ -11,8 +11,10 @@
   NODE_ENV = "production"
   
 [build.prebuild]
-  - "corepack enable"
-  - "corepack prepare pnpm@latest --activate"
+  prebuild_commands = [
+    "corepack enable",
+    "corepack prepare pnpm@latest --activate"
+  ]
 
 [healthcheck]
   enabled = true
