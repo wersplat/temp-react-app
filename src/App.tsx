@@ -14,6 +14,7 @@ const HomePage = lazy(() => import('./pages/HomePage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const TeamPage = lazy(() => import('./pages/TeamPage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 // Loading component for Suspense fallback
@@ -37,9 +38,10 @@ function App() {
                   <Routes>
                     <Route path="/" element={<HomePage />} />
                     <Route path="/login" element={<LoginPage />} />
-                    <Route path="/register" element={<RegisterPage />} />
-                    <Route path="/teams/:teamId" element={<TeamPage />} />
-                    <Route path="*" element={<NotFoundPage />} />
+                  <Route path="/register" element={<RegisterPage />} />
+                  <Route path="/teams/:teamId" element={<TeamPage />} />
+                  <Route path="/admin" element={<AdminPage />} />
+                  <Route path="*" element={<NotFoundPage />} />
                   </Routes>
                 </Suspense>
               </Layout>
