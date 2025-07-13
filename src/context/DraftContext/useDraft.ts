@@ -35,8 +35,7 @@ export const useDraft = (): DraftContextType => {
   const skipPick = useCallback(() => {
     setCurrentPick(prev => prev + 1);
     setTimeLeft(DRAFT_DURATION);
-    toast('Pick skipped', 'info');
-  }, [toast]);
+  }, []);
 
   // Timer effect
   useEffect(() => {
@@ -56,6 +55,20 @@ export const useDraft = (): DraftContextType => {
 
     return () => clearInterval(timer);
   }, [isPaused, isLoadingDraftPicks, skipPick]);
+
+  // Show toast when draft is paused/resumed
+  useEffect(() => {
+    if (isLoadingDraftPicks) return;
+    toast(isPaused ? 'Draft paused' : 'Draft resumed', 'info');
+  }, [isPaused, isLoadingDraftPicks, toast]);
+
+  // Show toast when pick is skipped
+  useEffect(() => {
+    if (isLoadingDraftPicks) return;
+    if (timeLeft === DRAFT_DURATION) {
+      toast('Pick skipped', 'info');
+    }
+  }, [timeLeft, isLoadingDraftPicks, toast]);
 
   // Mutation for selecting a player
   const selectPlayerMutation = useMutation({
@@ -84,8 +97,7 @@ export const useDraft = (): DraftContextType => {
   // Toggle pause state
   const togglePause = useCallback(() => {
     setIsPaused(prev => !prev);
-    toast(isPaused ? 'Draft resumed' : 'Draft paused', 'info');
-  }, [isPaused, toast]);
+  }, []);
 
   // Reset the draft
   const resetDraft = useCallback(async () => {

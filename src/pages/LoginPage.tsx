@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 
@@ -9,6 +9,16 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Check for registration success message
+  const registrationMessage = location.state?.message;
+  
+  if (registrationMessage) {
+    toast.success(registrationMessage);
+    // Clear the location state to prevent showing the message again on refresh
+    window.history.replaceState({}, '');
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,10 +53,10 @@ const LoginPage = () => {
           <p className="mt-2 text-center text-sm text-gray-600">
             Or{' '}
             <Link 
-              to="/" 
+              to="/register" 
               className="font-medium text-indigo-600 hover:text-indigo-500"
             >
-              continue as guest
+              create a new account
             </Link>
           </p>
         </div>
@@ -115,49 +125,32 @@ const LoginPage = () => {
                 isLoading ? 'opacity-70 cursor-not-allowed' : ''
               }`}
             >
-              {isLoading ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Signing in...
-                </>
-              ) : (
-                'Sign in'
-              )}
+              {isLoading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
-        </form>
-        
-        <div className="mt-6">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-50 text-gray-500">
-                Demo Credentials
-              </span>
-            </div>
-          </div>
           
-          <div className="mt-6 bg-gray-50 p-4 rounded-md">
-            <p className="text-sm text-gray-600 mb-2">Try these demo accounts:</p>
-            <div className="space-y-2">
-              <div>
-                <p className="text-sm font-medium">Admin User</p>
-                <p className="text-xs text-gray-500">Email: admin@example.com</p>
-                <p className="text-xs text-gray-500">Password: password123</p>
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
               </div>
-              <div>
-                <p className="text-sm font-medium">Regular User</p>
-                <p className="text-xs text-gray-500">Email: user@example.com</p>
-                <p className="text-xs text-gray-500">Password: password123</p>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-gray-50 text-gray-500">
+                  New to the app?
+                </span>
               </div>
             </div>
+
+            <div className="mt-6">
+              <Link
+                to="/register"
+                className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Create a new account
+              </Link>
+            </div>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );
