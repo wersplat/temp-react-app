@@ -35,10 +35,15 @@ const AdminPage = () => {
       return;
     }
     
+    if (!playerPosition) {
+      toast.error('Player position is required');
+      return;
+    }
+    
     try {
       await playersApi.create(
         playerName.trim(),
-        playerPosition || null,
+        playerPosition,
         currentEventId
       );
       
@@ -268,13 +273,14 @@ const AdminPage = () => {
             
             <div>
               <label htmlFor="playerPosition" className="block text-sm font-medium text-gray-700 mb-1">
-                Position (Optional)
+                Position *
               </label>
               <select
                 id="playerPosition"
                 value={playerPosition}
                 onChange={(e) => setPlayerPosition(e.target.value as PlayerPosition)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                required
               >
                 <option value="">Select Position</option>
                 {positionOptions.map((pos) => (
