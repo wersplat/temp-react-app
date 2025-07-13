@@ -14,7 +14,6 @@ CREATE TABLE IF NOT EXISTS public.events (
 -- Add comments for documentation
 COMMENT ON TABLE public.events IS 'Events for which drafts are organized';
 COMMENT ON COLUMN public.events.name IS 'Name of the event';
-COMMENT ON COLUMN public.events.description IS 'Description of the event';
 COMMENT ON COLUMN public.events.start_date IS 'When the event starts';
 COMMENT ON COLUMN public.events.end_date IS 'When the event ends';
 COMMENT ON COLUMN public.events.is_active IS 'Whether the event is currently active';
