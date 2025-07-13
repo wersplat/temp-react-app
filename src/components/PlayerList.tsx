@@ -1,4 +1,5 @@
 import type { Player } from '../services/supabase';
+import { getPositionAbbreviation } from '../utils/playerUtils';
 
 /**
  * Props for the PlayerList component.
@@ -6,12 +7,12 @@ import type { Player } from '../services/supabase';
  * @property {Player[]} players - Array of players to display
  * @property {(player: Player) => void} [onSelectPlayer] - Callback when a player is selected
  * @property {boolean} [isLoading=false] - Whether the component is in a loading state
- * @property {string} [emptyStateMessage='No players available'] - Message to display when no players are available
- * @property {boolean} [showTeam=true] - Whether to show the team column
+ * @property {string} [emptyStateMessage='No players found'] - Message to display when no players are available
+ * @property {boolean} [showTeam=false] - Whether to show the team column
  * @property {boolean} [showPosition=true] - Whether to show the position column
- * @property {string | number} [maxHeight='none'] - Maximum height of the scrollable container
+ * @property {string | number} [maxHeight='auto'] - Maximum height of the scrollable container
  * @property {boolean} [showDraftButton=false] - Whether to show the draft button
- * @property {boolean} [isDraftInProgress=true] - Whether the draft is currently in progress (affects button states)
+ * @property {boolean} [isDraftInProgress=false] - Whether the draft is currently in progress (affects button states)
  */
 interface PlayerListProps {
   players: Player[];
@@ -24,6 +25,29 @@ interface PlayerListProps {
   showDraftButton?: boolean;
   isDraftInProgress?: boolean;
 }
+
+// Position order for sorting players
+const positionOrder: Record<string, number> = {
+  'QB': 1, 'RB': 2, 'WR': 3, 'TE': 4, 'K': 5, 'DEF': 6, '': 99,
+  'Point Guard': 1, 'Shooting Guard': 2, 'Small Forward': 3, 
+  'Power Forward': 4, 'Center': 5, 'Guard': 1, 'Forward': 3,
+  'Utility': 6, 'Flex': 7
+};
+
+const sortedPlayers = (players: Player[]): Player[] => {
+  return [...players].sort((a, b) => {
+    // Sort by position
+    const aPos = a.position || '';
+    const bPos = b.position || '';
+    
+    if (positionOrder[aPos] !== positionOrder[bPos]) {
+      return (positionOrder[aPos] || 99) - (positionOrder[bPos] || 99);
+    }
+    
+    // Then by name
+    return a.name.localeCompare(b.name);
+  });
+};
 
 /**
  * A reusable component for displaying a list of players with sorting and selection capabilities.
@@ -48,17 +72,19 @@ interface PlayerListProps {
  *   />
  * );
  */
-const PlayerList = ({
-  players = [],
-  onSelectPlayer,
-  isLoading = false,
-  emptyStateMessage = 'No players available',
-  showTeam = true,
-  showPosition = true,
-  maxHeight = 'none',
-  showDraftButton = false,
-  isDraftInProgress = true,
-}: PlayerListProps) => {
+const PlayerList = (props: PlayerListProps) => {
+  // Destructure props with defaults
+  const { 
+    players = [], 
+    onSelectPlayer, 
+    isLoading = false, 
+    emptyStateMessage = 'No players found',
+    showTeam = false,
+    showPosition = true,
+    maxHeight = 'auto',
+    showDraftButton = false
+  } = props;
+
   // Show loading state if data is being fetched
   if (isLoading) {
     return (
@@ -136,10 +162,10 @@ const PlayerList = ({
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {players.map((player) => (
+          {sortedPlayers(players).map((player) => (
             <tr 
               key={player.id} 
-              className="hover:bg-gray-50"
+              className="hover:bg-gray-50 cursor-pointer"
               onClick={() => onSelectPlayer?.(player)}
               onKeyDown={(e) => {
                 if ((e.key === 'Enter' || e.key === ' ') && onSelectPlayer) {
@@ -147,39 +173,27 @@ const PlayerList = ({
                   onSelectPlayer(player);
                 }
               }}
-              role="button"
               tabIndex={0}
-              aria-label={`Select ${player.name}, ${player.position}, ${player.team}`}
+              aria-label={`Select ${player.name}, ${player.position}, ${player.team_name}`}
             >
               <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                 <div className="flex items-center">
-                  <div className="flex-shrink-0 h-8 w-8 sm:h-10 sm:w-10">
-                    {player.photo_url ? (
-                      <img 
-                        className="h-8 w-8 sm:h-10 sm:w-10 rounded-full" 
-                        src={player.photo_url} 
-                        alt="" 
-                        loading="lazy"
-                        width={40}
-                        height={40}
-                      />
-                    ) : (
-                      <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-sm sm:text-base">
-                        {player.name.charAt(0)}
-                      </div>
-                    )}
+                  <div className="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
+                    <span className="text-gray-700 font-medium">
+                      {player.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                    </span>
                   </div>
-                  <div className="ml-2 sm:ml-4 min-w-0">
-                    <div className="text-sm font-medium text-gray-900 truncate" id={`player-name-${player.id}`}>
+                  <div className="ml-4">
+                    <div className="text-sm font-medium text-gray-900">
                       {player.name}
                     </div>
                     <div className="text-xs sm:text-sm text-gray-500 flex items-center">
                       <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs sm:text-xs font-medium bg-blue-100 text-blue-800 mr-1 sm:mr-2">
-                        {player.position}
+                        {getPositionAbbreviation(player.position)}
                       </span>
-                      {showTeam && (
+                      {showTeam && player.team_name && (
                         <span className="truncate" id={`player-team-${player.id}`}>
-                          {player.team}
+                          {player.team_name}
                         </span>
                       )}
                     </div>
@@ -189,35 +203,20 @@ const PlayerList = ({
               {showTeam && (
                 <td className="hidden sm:table-cell px-4 sm:px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900" aria-labelledby={`player-team-${player.id} player-team-header`}>
-                    {player.team}
+                    {player.team_name || 'FA'}
                   </div>
                 </td>
               )}
               {showDraftButton && onSelectPlayer && (
                 <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSelectPlayer?.(player);
-                    }}
-                    onKeyDown={(e) => {
-                      if ((e.key === 'Enter' || e.key === ' ') && onSelectPlayer) {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        onSelectPlayer(player);
-                      }
-                    }}
-                    disabled={!isDraftInProgress}
-                    className={`inline-flex items-center px-2 sm:px-3 py-1 border text-xs font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 whitespace-nowrap ${
-                      isDraftInProgress
-                        ? 'bg-indigo-600 text-white border-transparent hover:bg-indigo-700 focus:ring-indigo-500'
-                        : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                    }`}
-                    aria-label={`Draft ${player.name}`}
+                    type="button"
+                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    onClick={() => onSelectPlayer?.(player)}
+                    aria-label={`Select ${player.name}`}
                   >
                     <span className="hidden sm:inline">Draft</span>
                     <span className="sm:hidden">+</span>
-                    <span className="sr-only"> {player.name}</span>
                   </button>
                 </td>
               )}

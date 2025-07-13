@@ -4,7 +4,8 @@ export type Team = TeamType;
 
 export interface DraftContextType {
   teams: Team[];
-  players: Player[];
+  players: Player[];  // Undrafted players
+  draftedPlayers: Array<Player & { team_id: string; team_name: string; pick_number?: number }>;
   draftPicks: DraftPick[];
   currentPick: number;
   isPaused: boolean;

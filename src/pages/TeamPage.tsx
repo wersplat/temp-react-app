@@ -101,7 +101,7 @@ const TeamPage = () => {
                         {pick.pick}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {pick.player || 'Unknown Player'}
+                        {typeof pick.player === 'string' ? pick.player : pick.player?.name || 'Unknown Player'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         N/A

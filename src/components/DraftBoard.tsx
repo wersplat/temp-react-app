@@ -33,7 +33,7 @@ const DraftBoard = ({
           {teams.find((t: Team) => t.id === pick.team_id)?.name || 'Unknown Team'}
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-          {pick.player}
+          {typeof pick.player === 'string' ? pick.player : pick.player?.name || 'Unknown Player'}
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
           {/* Position not available in current schema */}

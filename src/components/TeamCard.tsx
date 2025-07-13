@@ -1,4 +1,5 @@
-import type { Team, Player, DraftPick } from '../services/supabase';
+import type { Team, Player, DraftPick, PlayerPosition } from '../services/supabase';
+import { getPositionAbbreviation } from '../utils/playerUtils';
 
 /**
  * Props for the TeamCard component.
@@ -11,12 +12,13 @@ import type { Team, Player, DraftPick } from '../services/supabase';
  * @property {boolean} [isDraftInProgress=true] - Whether the draft is currently in progress
  */
 interface TeamCardProps {
-  team: Team;
-  picks: DraftPick[];
+  team: Team & { logo_url?: string | null };
+  picks: Array<DraftPick & { player: Player | null }>;
   players: Player[];
   isCurrentTeam?: boolean;
   onSelectPlayer?: (player: Player) => void;
   isDraftInProgress?: boolean;
+  eventId?: string;
 }
 
 /**
@@ -49,28 +51,20 @@ const TeamCard = ({
 }: TeamCardProps) => {
   // Get player details for each pick
   const picksWithPlayers = picks
-    .filter((pick): pick is DraftPick & { team_id: string; player: string } => 
-      pick.team_id !== null && pick.player !== null && pick.player !== ''
+    .filter((pick): pick is DraftPick & { player: Player } => 
+      pick.player !== null && typeof pick.player !== 'string'
     )
-    .map(({ player, ...pick }) => ({
+    .map(pick => ({
       ...pick,
-      player: {
-        id: '', // Not available in current schema
-        name: player,
-        position: '', // Not available in current schema
-        team: pick.team_id,
-        available: false,
-        photo_url: null,
-      }
+      player: pick.player as Player
     }));
 
   /**
    * Counts the number of players at each position for the team.
-   * @type {Record<string, number>}
    */
-  // Since position is not in current schema, we'll just count all as 'Player'
-  const positionCounts = picksWithPlayers.reduce<Record<string, number>>((acc) => {
-    acc['Player'] = (acc['Player'] || 0) + 1;
+  const positionCounts = picksWithPlayers.reduce<Record<string, number>>((acc, { player }) => {
+    const position = player.position || 'Flex';
+    acc[position] = (acc[position] || 0) + 1;
     return acc;
   }, {});
 
@@ -83,20 +77,23 @@ const TeamCard = ({
    */
   const teamNeeds = () => {
     const needs: string[] = [];
-    const positionRequirements = {
-      'QB': 1,
-      'RB': 2,
-      'WR': 2,
-      'TE': 1,
-      'FLEX': 1,
-      'K': 1,
-      'DEF': 1
+    const positionRequirements: Record<string, number> = {
+      'Point Guard': 1,
+      'Shooting Guard': 1,
+      'Small Forward': 1,
+      'Power Forward': 1,
+      'Center': 1,
+      'Guard': 1,
+      'Forward': 1,
+      'Utility': 1,
+      'Flex': 1
     };
 
     Object.entries(positionRequirements).forEach(([position, required]) => {
       const current = positionCounts[position] || 0;
       if (current < required) {
-        needs.push(`${position} (${current}/${required})`);
+        const abbrev = getPositionAbbreviation(position as PlayerPosition);
+        needs.push(`${abbrev} (${current}/${required})`);
       }
     });
 
@@ -161,7 +158,19 @@ const TeamCard = ({
                       {pick.pick}
                     </div>
                     <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">{pick.player.name}</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {pick.player.name}
+                      </div>
+                      <div className="flex items-center mt-1">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-medium bg-blue-100 text-blue-800 mr-2">
+                          {getPositionAbbreviation(pick.player.position)}
+                        </span>
+                        {pick.player.team_name && (
+                          <span className="text-xs text-gray-500">
+                            {pick.player.team_name}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </li>
@@ -187,10 +196,9 @@ const TeamCard = ({
             </h4>
           </div>
           <div className="max-h-48 overflow-y-auto">
-            {players.filter(p => p.available).length > 0 ? (
+            {players.length > 0 ? (
               <ul className="divide-y divide-gray-200">
                 {players
-                  .filter(player => player.available)
                   .slice(0, 5) // Show top 5 available players
                   .map((player) => (
                     <li key={player.id} className="px-3 py-2 sm:px-4 hover:bg-gray-50">
@@ -204,15 +212,17 @@ const TeamCard = ({
                         }}
                         className="w-full text-left focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded-md p-2"
                         aria-describedby={`team-${team.id}-available`}
-                        aria-label={`Select ${player.name}, ${player.position}, ${player.team}`}
+                        aria-label={`Select ${player.name}, ${player.position || 'Flex'}${player.team_name ? `, ${player.team_name}` : ''}`}
                         tabIndex={0}
                       >
                         <p className="text-sm font-medium text-gray-900 truncate">{player.name}</p>
                         <p className="text-xs text-gray-500 flex items-center mt-1">
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-2xs font-medium bg-indigo-100 text-indigo-800 mr-2">
-                            {player.position}
+                            {player.position || 'Flex'}
                           </span>
-                          <span className="truncate">{player.team}</span>
+                          {player.team_name && (
+                            <span className="truncate">{player.team_name}</span>
+                          )}
                         </p>
                       </button>
                     </li>

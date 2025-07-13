@@ -1,6 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { teamsApi, playersApi, draftPicksApi, type Team, type Player, type DraftPick } from '../../services/supabase';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { useAuth } from '../../context/AuthContext';
+import { useEvent } from '../../context/EventContext';
+import { 
+  teamsApi, 
+  playersApi, 
+  draftPicksApi, 
+  type Team, 
+  type Player, 
+  type DraftPick, 
+  type PlayerPosition
+} from '../../services/supabase';
 import { useToast } from '../../hooks/useToast';
 import type { DraftContextType } from './types';
 
@@ -9,33 +19,42 @@ const DRAFT_DURATION = 60; // 60 seconds per pick
 export const useDraft = (): DraftContextType => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { currentEventId } = useEvent();
+  const { user } = useAuth();
   
   // State for draft control
   const [isPaused, setIsPaused] = useState(false);
   const [timeLeft, setTimeLeft] = useState(DRAFT_DURATION);
   const [currentPick, setCurrentPick] = useState(1);
   
-  // Fetch teams, players, and draft picks
+  // Fetch teams, players, and draft picks with event filtering
   const { data: teams = [], isLoading: isLoadingTeams } = useQuery<Team[]>({
-    queryKey: ['teams'],
-    queryFn: teamsApi.getAll,
+    queryKey: ['teams', currentEventId],
+    queryFn: () => currentEventId ? teamsApi.getByEvent(currentEventId) : Promise.resolve([]),
+    enabled: !!currentEventId,
   });
 
   const { data: players = [], isLoading: isLoadingPlayers } = useQuery<Player[]>({
-    queryKey: ['players'],
-    queryFn: playersApi.getAll,
+    queryKey: ['players', currentEventId],
+    queryFn: () => currentEventId ? playersApi.getByEvent(currentEventId) : Promise.resolve([]),
+    enabled: !!currentEventId,
   });
 
   const { data: draftPicks = [], isLoading: isLoadingDraftPicks } = useQuery<DraftPick[]>({
-    queryKey: ['draftPicks'],
-    queryFn: draftPicksApi.getAll,
+    queryKey: ['draftPicks', currentEventId],
+    queryFn: () => currentEventId ? draftPicksApi.getByEvent(currentEventId) : Promise.resolve([]),
+    enabled: !!currentEventId,
   });
 
   // Skip the current pick
   const skipPick = useCallback(() => {
+    if (!currentEventId) {
+      toast('No event selected', 'error');
+      return;
+    }
     setCurrentPick(prev => prev + 1);
     setTimeLeft(DRAFT_DURATION);
-  }, []);
+  }, [currentEventId, toast]);
 
   // Timer effect
   useEffect(() => {
@@ -70,18 +89,73 @@ export const useDraft = (): DraftContextType => {
     }
   }, [timeLeft, isLoadingDraftPicks, toast]);
 
+  // Get undrafted players (players not in draftPicks for this event)
+  const undraftedPlayers = players.filter(player => 
+    !draftPicks.some(pick => 
+      typeof pick.player === 'object' ? 
+        pick.player?.id === player.id : 
+        pick.player === player.id
+    )
+  );
+
+  // Get drafted players with their team info
+  const draftedPlayers = draftPicks
+    .filter(pick => pick.player && pick.team_id)
+    .map(pick => {
+      const player = typeof pick.player === 'string' ? 
+        players.find(p => p.id === pick.player) : 
+        pick.player;
+      
+      if (!player) return null;
+      
+      return {
+        ...player,
+        team_id: pick.team_id as string,
+        team_name: teams.find(t => t.id === pick.team_id)?.name || 'Unknown Team',
+        pick_number: pick.pick
+      };
+    })
+    .filter((player): player is Player & { team_id: string; team_name: string; pick_number: number } => player !== null);
+
   // Mutation for selecting a player
   const selectPlayerMutation = useMutation({
     mutationFn: async (playerId: string) => {
+      if (!currentEventId) {
+        throw new Error('No event selected');
+      }
+
       const currentTeam = teams[(currentPick - 1) % teams.length];
       if (!currentTeam) throw new Error('No team found for current pick');
       
-      await playersApi.draftPlayer(playerId, currentTeam.id, currentPick);
+      const player = players.find(p => p.id === playerId);
+      if (!player) throw new Error('Player not found');
+      
+      // Create draft pick with all required fields
+      // Convert player to string (name) for storage in the database
+      const playerName = typeof player === 'string' ? player : player.name;
+      const now = new Date().toISOString();
+      
+      // Create a new draft pick with all required fields
+      const cleanPick = {
+        event_id: currentEventId,
+        team_id: currentTeam.id,
+        player: playerName,
+        player_id: playerId,
+        pick: currentPick,
+        round: Math.ceil(currentPick / teams.length),
+        player_position: (typeof player === 'string' ? 'Flex' : player.position || 'Flex') as PlayerPosition,
+        created_by: user?.id || 'system',
+        created_at: now,
+        traded: false,
+        notes: null
+      } as const;
+      
+      await draftPicksApi.createDraftPick(cleanPick);
       
       // Invalidate queries to refetch data
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['players'] }),
-        queryClient.invalidateQueries({ queryKey: ['draftPicks'] }),
+        queryClient.invalidateQueries({ queryKey: ['players', currentEventId] }),
+        queryClient.invalidateQueries({ queryKey: ['draftPicks', currentEventId] }),
       ]);
       
       // Move to next pick
@@ -119,7 +193,8 @@ export const useDraft = (): DraftContextType => {
 
   return {
     teams,
-    players: players.filter(p => p.available),
+    players: undraftedPlayers,
+    draftedPlayers,
     draftPicks,
     currentPick,
     isPaused,

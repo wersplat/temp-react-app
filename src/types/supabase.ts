@@ -23,6 +23,7 @@ export type Database = {
           notes: string | null
           pick: number
           player: string
+          player_position: Database["public"]["Enums"]["player_position"] | null
           round: number
           team_id: string | null
           traded: boolean
@@ -35,6 +36,9 @@ export type Database = {
           notes?: string | null
           pick: number
           player: string
+          player_position?:
+            | Database["public"]["Enums"]["player_position"]
+            | null
           round: number
           team_id?: string | null
           traded?: boolean
@@ -47,6 +51,9 @@ export type Database = {
           notes?: string | null
           pick?: number
           player?: string
+          player_position?:
+            | Database["public"]["Enums"]["player_position"]
+            | null
           round?: number
           team_id?: string | null
           traded?: boolean
@@ -120,18 +127,21 @@ export type Database = {
           event_id: string | null
           id: string
           name: string
+          position: Database["public"]["Enums"]["player_position"] | null
         }
         Insert: {
           created_at?: string
           event_id?: string | null
           id?: string
           name: string
+          position?: Database["public"]["Enums"]["player_position"] | null
         }
         Update: {
           created_at?: string
           event_id?: string | null
           id?: string
           name?: string
+          position?: Database["public"]["Enums"]["player_position"] | null
         }
         Relationships: [
           {
@@ -184,6 +194,7 @@ export type Database = {
           logo_url: string | null
           name: string
           slug: string | null
+          updated_at: string | null
         }
         Insert: {
           created_at?: string
@@ -193,6 +204,7 @@ export type Database = {
           logo_url?: string | null
           name: string
           slug?: string | null
+          updated_at?: string | null
         }
         Update: {
           created_at?: string
@@ -202,6 +214,7 @@ export type Database = {
           logo_url?: string | null
           name?: string
           slug?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -226,7 +239,7 @@ export type Database = {
         Args: {
           p_player_id: string
           p_team_id: string
-          p_pick: number
+          p_pick_number: number
           p_player_name: string
           p_player_position: string
         }
@@ -238,7 +251,12 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      player_position:
+        | "Point Guard"
+        | "Shooting Guard"
+        | "Lock"
+        | "Power Forward"
+        | "Center"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -365,6 +383,14 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      player_position: [
+        "Point Guard",
+        "Shooting Guard",
+        "Lock",
+        "Power Forward",
+        "Center",
+      ],
+    },
   },
 } as const
