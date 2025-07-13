@@ -592,6 +592,10 @@ export const draftPicksApi = {
 
   createDraftPick: async (pickData: Omit<DraftPick, 'id' | 'created_at' | 'updated_at'>): Promise<DraftPick> => {
     try {
+      if (!pickData.event_id) {
+        throw new Error('Event ID is required');
+      }
+
       // Ensure we have a valid player position
       const playerPos = pickData.player_position ? 
         toPlayerPosition(pickData.player_position) : null;
@@ -599,10 +603,10 @@ export const draftPicksApi = {
       // Create a new object with only the fields that should be sent to the database
       const dbPick = {
         event_id: pickData.event_id,
-        team_id: pickData.team_id,
+        team_id: pickData.team_id || null,
         player: typeof pickData.player === 'string' ? pickData.player : pickData.player?.name || '',
         player_position: playerPos,
-        pick: pickData.pick,
+        pick: pickData.pick || 1, // Default to 1 if not provided
         round: pickData.round || Math.ceil((pickData.pick || 1) / 10), // Default to round 1 if not provided
         created_by: pickData.created_by || null, // Make created_by optional
         traded: pickData.traded || false,
@@ -614,28 +618,29 @@ export const draftPicksApi = {
         .from('draft_picks')
         .select('*')
         .eq('event_id', pickData.event_id)
-        .eq('pick', pickData.pick)
+        .eq('pick', pickData.pick || 1)
         .maybeSingle();
 
-      let data;
-      let error;
+      let resultData;
 
-      if (existingPick) {
-        // Update existing pick
-        const { data: updatedData, error: updateError } = await supabase
-          .from('draft_picks')
-          .update({
-            ...dbPick,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingPick.id)
-          .select('*')
-          .single();
-        
-        data = updatedData;
-        error = updateError;
-      } else {
-        try {
+      try {
+        if (existingPick) {
+          // Update existing pick
+          const { data: updatedData, error: updateError } = await supabase
+            .from('draft_picks')
+            .update({
+              ...dbPick,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingPick.id)
+            .select('*')
+            .single();
+          
+          if (updateError) throw updateError;
+          if (!updatedData) throw new Error('Failed to update draft pick');
+          
+          resultData = updatedData;
+        } else {
           // Try to insert new pick
           const { data: insertedData, error: insertError } = await supabase
             .from('draft_picks')
@@ -643,57 +648,47 @@ export const draftPicksApi = {
             .select('*')
             .single();
           
-          data = insertedData;
-          error = insertError;
-        } catch (dbError: any) {
-          // Handle specific error cases
-          if (dbError.code === '23503' && dbError.details?.includes('profiles')) {
+          if (insertError) {
             // If the error is about the created_by foreign key, try again without it
-            const { data: retryData, error: retryError } = await supabase
-              .from('draft_picks')
-              .insert({
-                ...dbPick,
-                created_by: null // Remove the created_by field
-              })
-              .select('*')
-              .single();
-            
-            data = retryData;
-            error = retryError;
+            if (insertError.code === '23503' && insertError.details?.includes('profiles')) {
+              const { data: retryData, error: retryError } = await supabase
+                .from('draft_picks')
+                .insert({
+                  ...dbPick,
+                  created_by: null // Remove the created_by field
+                })
+                .select('*')
+                .single();
+              
+              if (retryError) throw retryError;
+              if (!retryData) throw new Error('Failed to create draft pick');
+              
+              resultData = retryData;
+            } else {
+              throw insertError;
+            }
           } else {
-            throw dbError;
+            if (!insertedData) throw new Error('Failed to create draft pick');
+            resultData = insertedData;
           }
         }
-      }
-
-      if (error) {
-        // Handle specific error cases
-        if (error.code === '23503' && error.details?.includes('profiles')) {
-          // If the error is about the created_by foreign key, try again without it
-          const { data: retryData, error: retryError } = await supabase
-            .from('draft_picks')
-            .insert({
-              ...dbPick,
-              created_by: null // Remove the created_by field
-            })
-            .select('*')
-            .single();
-          
-          if (retryError) throw retryError;
-          data = retryData;
-        } else {
-          throw error;
+      } catch (error: any) {
+        console.error('Error in draft pick operation:', error);
+        if (error.code === '23505') {
+          throw new Error('This pick has already been made. Please refresh the page to see the latest draft board.');
         }
+        throw error;
       }
 
       // Get the team data if available
       let team: Team | undefined;
-      if (pickData.team_id) {
+      if (resultData.team_id) {
         const { data: teamData } = await supabase
           .from('teams')
           .select('*')
-          .eq('id', pickData.team_id)
+          .eq('id', resultData.team_id)
           .single();
+        
         if (teamData) {
           team = teamData as Team;
         }
@@ -701,20 +696,20 @@ export const draftPicksApi = {
 
       // Create the draft pick with all required fields
       const result: DraftPick = {
-        id: data.id,
-        event_id: data.event_id,
-        team_id: data.team_id,
+        id: resultData.id,
+        event_id: resultData.event_id,
+        team_id: resultData.team_id,
         player: typeof pickData.player === 'string' ? pickData.player : pickData.player?.name || '',
         player_id: typeof pickData.player === 'string' ? null : (pickData.player as any)?.id || null,
-        pick: data.pick,
-        pick_number: data.pick, // Map 'pick' to 'pick_number' for backward compatibility
-        round: data.round || Math.ceil(data.pick / 10),
+        pick: resultData.pick,
+        pick_number: resultData.pick, // Map 'pick' to 'pick_number' for backward compatibility
+        round: resultData.round || Math.ceil(resultData.pick / 10),
         player_position: playerPos,
-        created_by: data.created_by || null,
-        created_at: data.created_at || new Date().toISOString(),
-        updated_at: (data as any).updated_at || new Date().toISOString(),
-        traded: data.traded || false,
-        notes: data.notes || null,
+        created_by: resultData.created_by || null,
+        created_at: resultData.created_at || new Date().toISOString(),
+        updated_at: (resultData as any).updated_at || new Date().toISOString(),
+        traded: resultData.traded || false,
+        notes: resultData.notes || null,
         team: team || undefined
       };
       
