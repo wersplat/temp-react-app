@@ -603,20 +603,87 @@ export const draftPicksApi = {
         player: typeof pickData.player === 'string' ? pickData.player : pickData.player?.name || '',
         player_position: playerPos,
         pick: pickData.pick,
-        round: pickData.round,
-        created_by: pickData.created_by,
+        round: pickData.round || Math.ceil((pickData.pick || 1) / 10), // Default to round 1 if not provided
+        created_by: pickData.created_by || null, // Make created_by optional
         traded: pickData.traded || false,
         notes: pickData.notes || null
       };
 
-      const { data, error } = await supabase
+      // First, check if a pick with the same event_id and pick already exists
+      const { data: existingPick } = await supabase
         .from('draft_picks')
-        .insert(dbPick)
         .select('*')
-        .single();
+        .eq('event_id', pickData.event_id)
+        .eq('pick', pickData.pick)
+        .maybeSingle();
+
+      let data;
+      let error;
+
+      if (existingPick) {
+        // Update existing pick
+        const { data: updatedData, error: updateError } = await supabase
+          .from('draft_picks')
+          .update({
+            ...dbPick,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingPick.id)
+          .select('*')
+          .single();
+        
+        data = updatedData;
+        error = updateError;
+      } else {
+        try {
+          // Try to insert new pick
+          const { data: insertedData, error: insertError } = await supabase
+            .from('draft_picks')
+            .insert(dbPick)
+            .select('*')
+            .single();
+          
+          data = insertedData;
+          error = insertError;
+        } catch (dbError: any) {
+          // Handle specific error cases
+          if (dbError.code === '23503' && dbError.details?.includes('profiles')) {
+            // If the error is about the created_by foreign key, try again without it
+            const { data: retryData, error: retryError } = await supabase
+              .from('draft_picks')
+              .insert({
+                ...dbPick,
+                created_by: null // Remove the created_by field
+              })
+              .select('*')
+              .single();
+            
+            data = retryData;
+            error = retryError;
+          } else {
+            throw dbError;
+          }
+        }
+      }
 
       if (error) {
-        throw error;
+        // Handle specific error cases
+        if (error.code === '23503' && error.details?.includes('profiles')) {
+          // If the error is about the created_by foreign key, try again without it
+          const { data: retryData, error: retryError } = await supabase
+            .from('draft_picks')
+            .insert({
+              ...dbPick,
+              created_by: null // Remove the created_by field
+            })
+            .select('*')
+            .single();
+          
+          if (retryError) throw retryError;
+          data = retryData;
+        } else {
+          throw error;
+        }
       }
 
       // Get the team data if available
@@ -637,13 +704,13 @@ export const draftPicksApi = {
         id: data.id,
         event_id: data.event_id,
         team_id: data.team_id,
-        player: typeof pickData.player === 'string' ? pickData.player : pickData.player.name,
-        player_id: typeof pickData.player === 'string' ? null : pickData.player.id,
+        player: typeof pickData.player === 'string' ? pickData.player : pickData.player?.name || '',
+        player_id: typeof pickData.player === 'string' ? null : (pickData.player as any)?.id || null,
         pick: data.pick,
-        pick_number: data.pick,
+        pick_number: data.pick, // Map 'pick' to 'pick_number' for backward compatibility
         round: data.round || Math.ceil(data.pick / 10),
         player_position: playerPos,
-        created_by: data.created_by || 'system',
+        created_by: data.created_by || null,
         created_at: data.created_at || new Date().toISOString(),
         updated_at: (data as any).updated_at || new Date().toISOString(),
         traded: data.traded || false,
@@ -654,6 +721,16 @@ export const draftPicksApi = {
       return result;
     } catch (error) {
       console.error('Error in draftPicksApi.createDraftPick:', error);
+      
+      // Provide a more user-friendly error message
+      if ((error as any).code === '23503' && (error as any).details?.includes('profiles')) {
+        throw new Error('Unable to save draft pick due to user permission issues. Please try again or contact support.');
+      }
+      
+      if ((error as any).code === '23505') {
+        throw new Error('This pick has already been made. Please refresh the page to see the latest draft board.');
+      }
+      
       throw error;
     }
   },
