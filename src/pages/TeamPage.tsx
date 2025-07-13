@@ -50,10 +50,10 @@ const TeamPage = () => {
         <div className="px-6 py-8 sm:px-8">
           <div className="flex items-center space-x-6">
             <div className="flex-shrink-0">
-              {team?.logo ? (
+              {team?.logo_url ? (
                 <img 
                   className="h-24 w-24 rounded-full" 
-                  src={team.logo} 
+                  src={team.logo_url} 
                   alt={`${team?.name || 'Team'} logo`} 
                 />
               ) : (

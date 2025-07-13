@@ -1,52 +1,71 @@
-import { createClient } from '@supabase/supabase-js';
-
-// Initialize Supabase client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://suqhwtwfvpcyvcbnycsa.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1cWh3dHdmdnBjeXZjYnluY3NhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0Mzk2MzAsImV4cCI6MjA2NzAxNTYzMH0.ROawOqve1AezL2Asi0MqcWy4GbISImG_CNbaXxNg2lo';
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { supabase } from '../lib/supabase';
 
 // Types
 export type Team = {
   id: string;
   name: string;
-  logo: string | null;
+  logo_url: string | null;  
   created_at: string;
+  updated_at: string;
 };
 
 export type Player = {
   id: string;
   name: string;
   position: string;
-  team: string;
+  team: string | null;
   available: boolean;
-  photo_url?: string | null;
+  photo_url: string | null;
   created_at: string;
+  updated_at: string;
 };
 
 export type DraftPick = {
   id: string;
   pick_number: number;
   team_id: string;
-  player_id: string;
-  player_name: string;
-  player_position: string;
+  team?: {
+    id: string;
+    name: string;
+    logo_url: string | null;
+  };
+  player_id: string | null;
+  player_name: string | null;
+  player_position: string | null;
   created_at: string;
+  updated_at: string;
+};
+
+// Helper function to handle API errors
+const handleApiError = (error: any, context: string) => {
+  console.error(`Error in ${context}:`, error);
+  const errorMessage = error.message || `Failed to ${context}`;
+  throw new Error(errorMessage);
+};
+
+// Helper to ensure user is authenticated
+const ensureAuth = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    throw new Error('Not authenticated. Please sign in.');
+  }
 };
 
 // Teams API
 export const teamsApi = {
   getAll: async (): Promise<Team[]> => {
+    await ensureAuth();
     const { data, error } = await supabase
       .from('teams')
       .select('*')
       .order('name');
     
-    if (error) throw error;
+    if (error) handleApiError(error, 'fetching teams');
     return data || [];
   },
 
   getById: async (id: string): Promise<Team | null> => {
+    await ensureAuth();
     const { data, error } = await supabase
       .from('teams')
       .select('*')
@@ -61,136 +80,131 @@ export const teamsApi = {
 // Players API
 export const playersApi = {
   getAll: async (): Promise<Player[]> => {
+    await ensureAuth();
     const { data, error } = await supabase
       .from('players')
       .select('*')
       .order('name');
     
-    if (error) throw error;
+    if (error) handleApiError(error, 'fetching players');
     return data || [];
   },
 
   getAvailable: async (): Promise<Player[]> => {
+    await ensureAuth();
     const { data, error } = await supabase
       .from('players')
       .select('*')
       .eq('available', true)
       .order('name');
     
-    if (error) throw error;
+    if (error) handleApiError(error, 'fetching available players');
     return data || [];
   },
 
   draftPlayer: async (playerId: string, teamId: string, pickNumber: number): Promise<void> => {
-    // Get player details first
-    const { data: player, error: playerError } = await supabase
-      .from('players')
-      .select('*')
-      .eq('id', playerId)
-      .single();
-    
-    if (playerError || !player) {
-      throw new Error('Player not found');
+    await ensureAuth();
+    try {
+      // Get player details first
+      const { data: player, error: playerError } = await supabase
+        .from('players')
+        .select('*')
+        .eq('id', playerId)
+        .single();
+      
+      if (playerError || !player) {
+        throw new Error('Player not found');
+      }
+
+      // Use the stored procedure for the transaction
+      const { error: draftError } = await supabase.rpc('draft_player_transaction', {
+        p_player_id: playerId,
+        p_team_id: teamId,
+        p_pick_number: pickNumber,
+        p_player_name: player.name,
+        p_player_position: player.position
+      });
+
+      if (draftError) throw draftError;
+    } catch (error) {
+      handleApiError(error, 'drafting player');
     }
-
-    // Create draft pick
-    const { error: pickError } = await supabase
-      .from('draft_picks')
-      .insert([
-        {
-          pick_number: pickNumber,
-          team_id: teamId,
-          player_id: playerId,
-          player_name: player.name,
-          player_position: player.position,
-        },
-      ]);
-
-    if (pickError) throw pickError;
-
-    // Mark player as drafted
-    const { error: updateError } = await supabase
-      .from('players')
-      .update({ available: false })
-      .eq('id', playerId);
-
-    if (updateError) throw updateError;
   },
 };
 
 // Draft Picks API
 export const draftPicksApi = {
   getAll: async (): Promise<DraftPick[]> => {
+    await ensureAuth();
     const { data, error } = await supabase
       .from('draft_picks')
-      .select('*')
+      .select(`
+        *,
+        teams (id, name, logo_url)
+      `)
       .order('pick_number');
     
-    if (error) throw error;
+    if (error) handleApiError(error, 'fetching draft picks');
     return data || [];
   },
 
   getByTeam: async (teamId: string): Promise<DraftPick[]> => {
+    await ensureAuth();
     const { data, error } = await supabase
       .from('draft_picks')
-      .select('*')
+      .select(`
+        *,
+        teams (id, name, logo_url)
+      `)
       .eq('team_id', teamId)
       .order('pick_number');
     
-    if (error) throw error;
+    if (error) handleApiError(error, 'fetching team draft picks');
     return data || [];
   },
 
   resetDraft: async (): Promise<void> => {
-    // Delete all draft picks
-    const { error: picksError } = await supabase
-      .from('draft_picks')
-      .delete()
-      .gte('pick_number', 0);
-    
-    if (picksError) throw picksError;
-
-    // Reset all players to available
-    const { error: playersError } = await supabase
-      .from('players')
-      .update({ available: true })
-      .eq('available', false);
-    
-    if (playersError) throw playersError;
+    await ensureAuth();
+    const { error } = await supabase.rpc('reset_draft');
+    if (error) handleApiError(error, 'resetting draft');
   },
 };
 
 // Realtime subscriptions
 export const subscribeToDraftUpdates = (callback: () => void) => {
-  const subscription = supabase
-    .channel('draft-updates')
+  const channel = supabase
+    .channel('draft-picks-changes')
     .on(
       'postgres_changes',
-      { event: '*', schema: 'public', table: 'draft_picks' },
-      () => {
-        callback();
-      }
+      {
+        event: '*',
+        schema: 'public',
+        table: 'draft_picks',
+      },
+      () => callback()
     )
     .subscribe();
 
   return () => {
-    supabase.removeChannel(subscription);
+    supabase.removeChannel(channel);
   };
 };
 
 export const subscribeToPlayerUpdates = (callback: () => void) => {
-  const subscription = supabase
-    .channel('player-updates')
+  const channel = supabase
+    .channel('players-changes')
     .on(
       'postgres_changes',
-      { event: '*', schema: 'public', table: 'players' },
-      () => {
-        callback();
-      }
+      {
+        event: '*',
+        schema: 'public',
+        table: 'players',
+      },
+      () => callback()
     )
     .subscribe();
 
   return () => {
-    supabase.removeChannel(subscription);
+    supabase.removeChannel(channel);
   };
 };

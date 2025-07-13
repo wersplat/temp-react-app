@@ -24,7 +24,7 @@ interface TeamCardProps {
  * 
  * @component
  * @example
- * const team = { id: '1', name: 'Team A', logo: 'url-to-logo' };
+ * const team = { id: '1', name: 'Team A', logo_url: 'url-to-logo' };
  * const picks = [{ id: '1', pick_number: 1, team_id: '1', player_id: '101' }];
  * const players = [{ id: '101', name: 'John Doe', position: 'QB', team: 'DAL', available: false }];
  * 
@@ -106,21 +106,15 @@ const TeamCard = ({
       {/* Team Header */}
       <div className="px-3 py-4 sm:px-4 md:px-6 bg-gray-50">
         <div className="flex items-start sm:items-center">
-          {team.logo ? (
-            <div className="flex-shrink-0">
-              <img 
-                className="h-10 w-10 sm:h-12 sm:w-12 rounded-full mr-3 sm:mr-4" 
-                src={team.logo} 
-                alt="" 
-                aria-hidden="true"
-                width={48}
-                height={48}
-                loading="lazy"
-              />
-            </div>
+          {team.logo_url ? (
+            <img 
+              className="h-10 w-10 rounded-full"
+              src={team.logo_url}
+              alt={`${team.name} logo`}
+            />
           ) : (
             <div 
-              className="flex-shrink-0 h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gray-200 flex items-center justify-center text-lg sm:text-xl font-bold text-gray-500 mr-3 sm:mr-4"
+              className="flex-shrink-0 h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-lg sm:text-xl font-bold text-gray-500 mr-3 sm:mr-4"
               aria-hidden="true"
             >
               {team.name.charAt(0)}
