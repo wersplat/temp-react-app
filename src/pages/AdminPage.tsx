@@ -17,10 +17,7 @@ const AdminPage = () => {
   const [playerPosition, setPlayerPosition] = useState<PlayerPosition | ''>('');
   const [teamName, setTeamName] = useState('');
   const [teamLogoUrl, setTeamLogoUrl] = useState('');
-  
-  // Event form state
   const [eventName, setEventName] = useState('');
-  const [eventDescription, setEventDescription] = useState('');
   const [eventDate, setEventDate] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [draftType, setDraftType] = useState<'snake' | 'linear'>('snake');
@@ -32,13 +29,26 @@ const AdminPage = () => {
   const handleAddPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentEventId) return toast.error('No event selected');
+    
+    if (!playerName.trim()) {
+      toast.error('Player name is required');
+      return;
+    }
+    
     try {
-      await playersApi.create(playerName, playerPosition || null, currentEventId);
-      toast.success('Player added');
+      await playersApi.create(
+        playerName.trim(),
+        playerPosition || null,
+        currentEventId
+      );
+      
+      toast.success('Player added successfully');
+      
+      // Reset form
       setPlayerName('');
       setPlayerPosition('');
     } catch (err) {
-      toast.error((err as Error).message);
+      toast.error(`Failed to add player: ${(err as Error).message}`);
     }
   };
 
@@ -76,7 +86,7 @@ const AdminPage = () => {
     try {
       await eventsApi.create(
         eventName.trim(),
-        eventDescription.trim() || null,
+        null,
         eventDate || null,
         isActive,
         draftType,
@@ -90,7 +100,6 @@ const AdminPage = () => {
       
       // Reset form
       setEventName('');
-      setEventDescription('');
       setEventDate('');
       setIsActive(true);
       setDraftType('snake');
@@ -135,19 +144,6 @@ const AdminPage = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
-          </div>
-
-          <div>
-            <label htmlFor="eventDescription" className="block text-sm font-medium text-gray-700 mb-1">
-              Description
-            </label>
-            <textarea
-              id="eventDescription"
-              rows={3}
-              value={eventDescription}
-              onChange={(e) => setEventDescription(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            />
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
@@ -253,30 +249,52 @@ const AdminPage = () => {
       </div>
 
       <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-xl font-bold mb-4">Add Player</h2>
+        <h2 className="text-2xl font-bold mb-6 text-gray-800">Add Player</h2>
         <form onSubmit={handleAddPlayer} className="space-y-4">
-          <input
-            type="text"
-            placeholder="Player Name"
-            value={playerName}
-            onChange={(e) => setPlayerName(e.target.value)}
-            className="w-full border rounded px-3 py-2"
-          />
-          <select
-            value={playerPosition}
-            onChange={(e) => setPlayerPosition(e.target.value as PlayerPosition)}
-            className="w-full border rounded px-3 py-2"
-          >
-            <option value="">Select position</option>
-            {positionOptions.map((pos) => (
-              <option key={pos} value={pos}>
-                {pos}
-              </option>
-            ))}
-          </select>
-          <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded">
-            Add Player
-          </button>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="playerName" className="block text-sm font-medium text-gray-700 mb-1">
+                Player Name *
+              </label>
+              <input
+                type="text"
+                id="playerName"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="e.g. LeBron James"
+                required
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="playerPosition" className="block text-sm font-medium text-gray-700 mb-1">
+                Position (Optional)
+              </label>
+              <select
+                id="playerPosition"
+                value={playerPosition}
+                onChange={(e) => setPlayerPosition(e.target.value as PlayerPosition)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="">Select Position</option>
+                {positionOptions.map((pos) => (
+                  <option key={pos} value={pos}>
+                    {pos}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          <div className="pt-2">
+            <button
+              type="submit"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Add Player
+            </button>
+          </div>
         </form>
       </div>
 
