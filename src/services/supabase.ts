@@ -87,6 +87,23 @@ export type Database = {
           slug?: string;
         };
       };
+      events: {
+        Row: {
+          id: string;
+          name: string;
+          description: string | null;
+          date: string | null;
+          draft_type: string;
+          num_teams: number;
+          pick_time_seconds: number | null;
+          picks_per_team: number;
+          prize_pool: number | null;
+          is_active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string | null;
+        };
+      };
     };
   };
 };
@@ -196,6 +213,21 @@ interface DraftPickBase {
 }
 
 export type DraftPick = DraftPickBase;
+
+// Event related types
+export type EventRow = Database['public']['Tables']['events']['Row'];
+
+export interface Event {
+  id: string;
+  name: string;
+  description: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  isActive: boolean;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+}
 
 // Helper function to handle API errors
 const handleApiError = (error: unknown, context: string): never => {
@@ -879,4 +911,98 @@ export const draftPicksApi = {
       subscription.unsubscribe();
     };
   },
+};
+
+// Events API
+export const eventsApi = {
+  create: async (
+    name: string, 
+    description: string | null = null, 
+    startDate: string | null = null, 
+    isActive: boolean = true,
+    draftType: string = 'snake', // Default draft type
+    numTeams: number = 12, // Default number of teams
+    pickTimeSeconds: number | null = 60, // Default pick time
+    picksPerTeam: number = 15, // Default picks per team
+    prizePool: number | null = null // Optional prize pool
+  ): Promise<Event | null> => {
+    try {
+      const isAuthenticated = await ensureAuth();
+      if (!isAuthenticated) {
+        throw new Error('You must be authenticated to create an event');
+      }
+
+      // Use the actual database schema fields
+      const insertData = {
+        name,
+        description,
+        date: startDate, // Using 'date' instead of 'start_date' to match DB
+        draft_type: draftType,
+        num_teams: numTeams,
+        pick_time_seconds: pickTimeSeconds,
+        picks_per_team: picksPerTeam,
+        prize_pool: prizePool,
+        is_active: isActive
+      };
+
+      const { data, error } = await supabase
+        .from('events')
+        .insert([insertData]) // Wrap in array as required by Supabase
+        .select('*')
+        .single();
+
+      if (error) {
+        console.error('Error creating event:', error);
+        throw error;
+      }
+
+      // Map the database response to our Event type
+      const eventData = data as any; // Use any to bypass type checking since we know the shape
+      
+      return {
+        id: eventData.id,
+        name: eventData.name,
+        description: eventData.description,
+        startDate: eventData.date, // Map 'date' back to 'startDate'
+        endDate: null, // No end_date in the actual schema
+        isActive: eventData.is_active,
+        createdBy: eventData.created_by,
+        createdAt: eventData.created_at,
+        updatedAt: eventData.updated_at
+      };
+    } catch (error) {
+      console.error('Unexpected error in eventsApi.create:', error);
+      throw error;
+    }
+  },
+
+  getAll: async (): Promise<Event[]> => {
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .order('date', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching events:', error);
+        return [];
+      }
+
+      // Map the database response to our Event type
+      return (data || []).map((event: any) => ({
+        id: event.id,
+        name: event.name,
+        description: event.description,
+        startDate: event.date, // Map 'date' to 'startDate'
+        endDate: null, // No end_date in the actual schema
+        isActive: event.is_active,
+        createdBy: event.created_by,
+        createdAt: event.created_at,
+        updatedAt: event.updated_at
+      }));
+    } catch (error) {
+      console.error('Unexpected error in eventsApi.getAll:', error);
+      return [];
+    }
+  }
 };
