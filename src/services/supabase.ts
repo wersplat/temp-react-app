@@ -1,6 +1,65 @@
 import { supabase } from '../lib/supabase';
 
-// Types
+// Helper type to extract the row type from a table
+type TableRow<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row'];
+
+// Define your database schema types
+type Database = {
+  public: {
+    Tables: {
+      players: {
+        Row: {
+          id: string;
+          name: string;
+          position: string | null;
+          team: string | null;
+          available: boolean;
+          photo_url: string | null;
+          created_at: string;
+          updated_at: string;
+          event_id: string | null;
+        };
+      };
+      draft_picks: {
+        Row: {
+          id: number;
+          event_id: string | null;
+          team_id: string | null;
+          pick: number;
+          round: number;
+          player: string;
+          player_position: string | null;
+          notes: string | null;
+          traded: boolean;
+          created_at: string;
+          created_by: string | null;
+          updated_at?: string;
+        };
+      };
+      teams: {
+        Row: {
+          id: string;
+          name: string;
+          logo_url: string | null;
+          created_at: string;
+          updated_at: string;
+          event_id: string | null;
+        };
+      };
+    };
+  };
+};
+
+type PlayerRow = TableRow<'players'>;
+type DraftPickRow = TableRow<'draft_picks'> & {
+  team?: {
+    id: string;
+    name: string;
+    logo_url: string | null;
+  };
+};
+
+// Application types
 export type Team = {
   id: string;
   name: string;
@@ -12,29 +71,13 @@ export type Team = {
   slug?: string | null;
 };
 
-export type Player = {
-  id: string;
-  name: string;
-  position?: string;
-  team?: string | null;
-  available?: boolean;
-  photo_url?: string | null;
-  created_at: string;
+export type Player = Omit<PlayerRow, 'updated_at'> & {
   updated_at?: string;
-  event_id?: string | null;
 };
 
-export type DraftPick = {
-  id: number;
-  event_id: string | null;
-  team_id: string | null;
-  pick: number;
-  round: number;
-  player: string;
-  notes: string | null;
-  traded: boolean;
+export type DraftPick = Omit<DraftPickRow, 'created_at' | 'updated_at'> & {
   created_at: string;
-  created_by: string | null;
+  updated_at?: string;
   team?: {
     id: string;
     name: string;
@@ -87,8 +130,15 @@ export const playersApi = {
       .select('*')
       .order('name');
     
-    if (error) handleApiError(error, 'fetching players');
-    return data || [];
+    if (error) {
+      handleApiError(error, 'fetching players');
+      return [];
+    }
+    
+    return (data as PlayerRow[]).map(player => ({
+      ...player,
+      updated_at: player.updated_at
+    }));
   },
 
   getAvailable: async (): Promise<Player[]> => {
@@ -98,8 +148,15 @@ export const playersApi = {
       .eq('available', true)
       .order('name');
     
-    if (error) handleApiError(error, 'fetching available players');
-    return data || [];
+    if (error) {
+      handleApiError(error, 'fetching available players');
+      return [];
+    }
+    
+    return (data as PlayerRow[]).map(player => ({
+      ...player,
+      updated_at: player.updated_at
+    }));
   },
 
   draftPlayer: async (playerId: string, teamId: string, pickNumber: number): Promise<void> => {
@@ -120,12 +177,12 @@ export const playersApi = {
         return;
       }
       
-      // Get the player's name
+      // Get the player's data with proper typing
       const { data: player, error: playerError } = await supabase
         .from('players')
-        .select('name')
+        .select('*')
         .eq('id', playerId)
-        .single();
+        .single<PlayerRow>();
       
       if (playerError) {
         handleApiError(playerError, 'fetching player');
@@ -142,6 +199,7 @@ export const playersApi = {
         .update({
           team_id: teamId,
           player: player.name, // Store the player's name directly
+          player_position: player.position, // Add the player's position
           traded: false,
           updated_at: new Date().toISOString()
         })
@@ -172,11 +230,10 @@ export const draftPicksApi = {
       return [];
     }
     
-    // Transform the data to match the DraftPick type
-    return (data || []).map(pick => ({
+    return (data as DraftPickRow[]).map(pick => ({
       ...pick,
-      // Ensure team is either the team object or undefined (not null)
-      team: pick.team || undefined
+      created_at: pick.created_at,
+      updated_at: pick.updated_at
     }));
   },
 
@@ -194,11 +251,10 @@ export const draftPicksApi = {
       return [];
     }
     
-    // Transform the data to match the DraftPick type
-    return (data || []).map(pick => ({
+    return (data as DraftPickRow[]).map(pick => ({
       ...pick,
-      // Ensure team is either the team object or undefined (not null)
-      team: pick.team || undefined
+      created_at: pick.created_at,
+      updated_at: pick.updated_at
     }));
   },
 
@@ -214,6 +270,7 @@ export const draftPicksApi = {
       .update({
         team_id: null,
         player: '',
+        player_position: null, // Reset player_position to null
         traded: false,
         notes: null
       });
