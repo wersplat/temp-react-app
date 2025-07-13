@@ -86,7 +86,6 @@ const AdminPage = () => {
     try {
       await eventsApi.create(
         eventName.trim(),
-        null,
         eventDate || null,
         isActive,
         draftType,
