@@ -91,7 +91,6 @@ export type Database = {
         Row: {
           id: string;
           name: string;
-          description: string | null;
           date: string | null;
           draft_type: string;
           num_teams: number;
@@ -220,7 +219,6 @@ export type EventRow = Database['public']['Tables']['events']['Row'];
 export interface Event {
   id: string;
   name: string;
-  description: string | null;
   startDate: string | null;
   endDate: string | null;
   isActive: boolean;
@@ -917,7 +915,6 @@ export const draftPicksApi = {
 export const eventsApi = {
   create: async (
     name: string, 
-    description: string | null = null, 
     date: string | null = null, 
     isActive: boolean = true,
     draftType: string = 'snake',
@@ -935,7 +932,6 @@ export const eventsApi = {
       // Map to database schema
       const insertData = {
         name,
-        description,
         date,
         draft_type: draftType,
         num_teams: numTeams,
@@ -961,7 +957,6 @@ export const eventsApi = {
       return {
         id: eventData.id,
         name: eventData.name,
-        description: eventData.description,
         startDate: eventData.date,  // Map 'date' to 'startDate'
         endDate: null,              // Not in database, set to null
         isActive: eventData.is_active,
@@ -991,7 +986,6 @@ export const eventsApi = {
       return (data || []).map((event: any) => ({
         id: event.id,
         name: event.name,
-        description: event.description,
         startDate: event.date,  // Map 'date' to 'startDate'
         endDate: null,          // Not in database, set to null
         isActive: event.is_active,

@@ -2,7 +2,6 @@
 CREATE TABLE IF NOT EXISTS public.events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
-    description TEXT,
     start_date TIMESTAMPTZ,
     end_date TIMESTAMPTZ,
     is_active BOOLEAN DEFAULT true,
