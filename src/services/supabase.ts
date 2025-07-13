@@ -233,6 +233,27 @@ export const teamsApi = {
     if (error) return null;
     return data;
   },
+
+  create: async (name: string, eventId: string, logoUrl?: string | null): Promise<Team | null> => {
+    const isAuthenticated = await ensureAuth();
+    if (!isAuthenticated) {
+      throw new Error('You must be authenticated to create a team');
+    }
+
+    const slug = name.toLowerCase().replace(/\s+/g, '-');
+
+    const { data, error } = await supabase
+      .from('teams')
+      .insert({ name, slug, logo_url: logoUrl || null, event_id: eventId })
+      .select('*')
+      .single();
+
+    if (error) {
+      handleApiError(error, 'creating team');
+      return null;
+    }
+    return data as Team;
+  },
 };
 
 // Players API
@@ -288,6 +309,30 @@ export const playersApi = {
       ...player,
       updated_at: player.updated_at
     }));
+  },
+
+  create: async (
+    name: string,
+    position: PlayerPosition | null,
+    eventId: string
+  ): Promise<Player | null> => {
+    const isAuthenticated = await ensureAuth();
+    if (!isAuthenticated) {
+      throw new Error('You must be authenticated to create a player');
+    }
+
+    const { data, error } = await supabase
+      .from('players')
+      .insert({ name, position, event_id: eventId })
+      .select('*')
+      .single();
+
+    if (error) {
+      handleApiError(error, 'creating player');
+      return null;
+    }
+
+    return { ...data, updated_at: data.updated_at } as Player;
   },
 
   draftPlayer: async (playerId: string, teamId: string, pickNumber: number): Promise<void> => {

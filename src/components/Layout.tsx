@@ -9,6 +9,7 @@ type LayoutProps = {
 export default function Layout({ children }: LayoutProps) {
   const { user, signOut } = useAuth();
   const location = useLocation();
+  const isAdmin = user?.email?.endsWith('@admin.com') ?? false;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -30,15 +31,27 @@ export default function Layout({ children }: LayoutProps) {
               Draft Board
             </Link>
             {user && (
-              <Link 
+              <Link
                 to={`/teams/${user.id}`}
                 className={`px-3 py-2 rounded-md text-sm font-medium ${
-                  location.pathname.startsWith('/teams/') 
-                    ? 'bg-indigo-100 text-indigo-700' 
+                  location.pathname.startsWith('/teams/')
+                    ? 'bg-indigo-100 text-indigo-700'
                     : 'text-gray-700 hover:bg-gray-100'
                 }`}
               >
                 My Team
+              </Link>
+            )}
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className={`px-3 py-2 rounded-md text-sm font-medium ${
+                  location.pathname === '/admin'
+                    ? 'bg-indigo-100 text-indigo-700'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                Admin
               </Link>
             )}
           </nav>
