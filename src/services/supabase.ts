@@ -1,12 +1,9 @@
 import { supabase } from '../lib/supabase';
 
-// Helper type to extract the row type from a table
-type TableRow<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row'];
-
 // Define your database schema types
 // Define the player position types to match the database
 // These should match the values in your database enum
-type DbPlayerPosition = 
+export type DbPlayerPosition = 
   | 'Point Guard' 
   | 'Shooting Guard' 
   | 'Lock' 
@@ -45,18 +42,22 @@ export const toPlayerPosition = (pos: string | null | undefined): PlayerPosition
   return null;
 };
 
-type Database = {
+export type Database = {
   public: {
     Tables: {
       players: {
         Row: {
           id: string;
           name: string;
-          position: PlayerPosition | null;
+          position: DbPlayerPosition | null;
           created_at: string;
-          updated_at: string;
+          updated_at: string | null;
           event_id: string | null;
+          team_name?: string | null;
+          team_logo?: string | null;
         };
+        Insert: Omit<PlayerRow, 'id' | 'created_at'>;
+        Update: Partial<Omit<PlayerRow, 'id' | 'created_at'>>;
       };
       draft_picks: {
         Row: {
@@ -90,7 +91,29 @@ type Database = {
   };
 };
 
-type PlayerRow = TableRow<'players'>;
+type PlayerRow = {
+  id: string;
+  name: string;
+  position: DbPlayerPosition | null;
+  created_at: string;
+  updated_at: string | null;
+  event_id: string | null;
+  team_name?: string | null;
+  team_logo?: string | null;
+};
+
+// Player related types
+export interface Player {
+  id: string;
+  name: string;
+  position: PlayerPosition | null;
+  created_at: string;
+  updated_at?: string | null;
+  event_id?: string | null;
+  team_name?: string | null;
+  team_logo?: string | null;
+}
+
 // Export subscription functions
 export const subscribeToDraftUpdates = (callback: () => void) => {
   return supabase
@@ -123,16 +146,6 @@ export type Team = {
   event_id?: string | null;
   slug?: string | null;
 };
-
-export interface Player {
-  id: string;
-  name: string;
-  position: PlayerPosition | null;
-  updated_at?: string;
-  team_name?: string | null;
-  team_logo?: string | null;
-  event_id?: string | null;
-}
 
 // Database representation of a draft pick
 type DbDraftPick = {
@@ -169,9 +182,9 @@ interface DraftPickBase {
   event_id: string | null;
   team_id: string | null;
   player: string | Player;  // Can be just the ID or the full player object
-  player_id?: string | null; // Add this line to match the database schema
+  player_id?: string | null; 
   pick: number;
-  pick_number: number; // The sequential pick number in the draft
+  pick_number: number; 
   round: number;
   player_position: PlayerPosition | null;
   created_by: string | null;
@@ -179,7 +192,7 @@ interface DraftPickBase {
   updated_at: string;
   traded: boolean;
   notes: string | null;
-  team?: Team; // Optional team info for the draft pick
+  team?: Team; 
 }
 
 export type DraftPick = DraftPickBase;
@@ -270,8 +283,14 @@ export const playersApi = {
     }
     
     return (data as PlayerRow[]).map(player => ({
-      ...player,
-      updated_at: player.updated_at
+      id: player.id,
+      name: player.name,
+      position: player.position,
+      created_at: player.created_at,
+      updated_at: player.updated_at,
+      ...(player.team_name !== undefined && { team_name: player.team_name }),
+      ...(player.team_logo !== undefined && { team_logo: player.team_logo }),
+      ...(player.event_id !== undefined && { event_id: player.event_id })
     }));
   },
 
@@ -288,26 +307,43 @@ export const playersApi = {
     }
     
     return (data as PlayerRow[]).map(player => ({
-      ...player,
-      updated_at: player.updated_at
+      id: player.id,
+      name: player.name,
+      position: player.position,
+      created_at: player.created_at,
+      updated_at: player.updated_at,
+      ...(player.team_name !== undefined && { team_name: player.team_name }),
+      ...(player.team_logo !== undefined && { team_logo: player.team_logo }),
+      ...(player.event_id !== undefined && { event_id: player.event_id })
     }));
   },
 
-  getAvailable: async (): Promise<Player[]> => {
-    const { data, error } = await supabase
+  search: async (query: string, eventId?: string): Promise<Player[]> => {
+    let queryBuilder = supabase
       .from('players')
       .select('*')
-      .eq('available', true)
-      .order('name');
-    
+      .ilike('name', `%${query}%`);
+
+    if (eventId) {
+      queryBuilder = queryBuilder.eq('event_id', eventId);
+    }
+
+    const { data, error } = await queryBuilder.order('name');
+
     if (error) {
-      handleApiError(error, 'fetching available players');
+      console.error('Error searching players:', error);
       return [];
     }
-    
+
     return (data as PlayerRow[]).map(player => ({
-      ...player,
-      updated_at: player.updated_at
+      id: player.id,
+      name: player.name,
+      position: player.position,
+      created_at: player.created_at,
+      updated_at: player.updated_at,
+      ...(player.team_name !== undefined && { team_name: player.team_name }),
+      ...(player.team_logo !== undefined && { team_logo: player.team_logo }),
+      ...(player.event_id !== undefined && { event_id: player.event_id })
     }));
   },
 
@@ -323,7 +359,11 @@ export const playersApi = {
 
     const { data, error } = await supabase
       .from('players')
-      .insert({ name, position, event_id: eventId })
+      .insert({ 
+        name, 
+        position, 
+        event_id: eventId 
+      })
       .select('*')
       .single();
 
@@ -332,7 +372,17 @@ export const playersApi = {
       return null;
     }
 
-    return { ...data, updated_at: data.updated_at } as Player;
+    const playerData = data as PlayerRow;
+    return {
+      id: playerData.id,
+      name: playerData.name,
+      position: playerData.position,
+      created_at: playerData.created_at,
+      updated_at: playerData.updated_at,
+      ...(playerData.team_name !== undefined && { team_name: playerData.team_name }),
+      ...(playerData.team_logo !== undefined && { team_logo: playerData.team_logo }),
+      ...(playerData.event_id !== undefined && { event_id: playerData.event_id })
+    };
   },
 
   draftPlayer: async (playerId: string, teamId: string, pickNumber: number): Promise<void> => {

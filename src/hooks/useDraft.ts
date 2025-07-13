@@ -61,7 +61,12 @@ export function useDraft(): UseDraftReturn {
         throw error;
       }
       
-      return data || [];
+      // Ensure all Player objects have the required updated_at field
+      return (data || []).map((player: Player & { updated_at?: string | null }) => ({
+        ...player,
+        updated_at: player.updated_at ?? null,
+        created_at: player.created_at || new Date().toISOString()
+      }));
     },
   };
 

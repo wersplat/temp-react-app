@@ -47,7 +47,20 @@ export const useDraft = (): DraftContextType => {
 
   const playersQuery = useQuery<Player[], Error>({
     queryKey: ['players', currentEventId],
-    queryFn: () => currentEventId ? playersApi.getByEvent(currentEventId) : Promise.resolve([]),
+    queryFn: async () => {
+      if (!currentEventId) return [];
+      
+      const data = await playersApi.getByEvent(currentEventId);
+      
+      // Ensure all Player objects have the required fields
+      return data.map(player => ({
+        ...player,
+        updated_at: player.updated_at ?? null,
+        created_at: player.created_at || new Date().toISOString(),
+        position: player.position ?? null,
+        event_id: player.event_id ?? currentEventId,
+      }));
+    },
     enabled: !!currentEventId,
   });
 
