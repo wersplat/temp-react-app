@@ -1,16 +1,27 @@
+import { Suspense, lazy } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext/AuthProvider';
 import { DraftProvider } from './context/DraftContext';
+import { AppProvider } from './context/AppContext';
 import Layout from './components/Layout';
-import HomePage from './pages/HomePage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import TeamPage from './pages/TeamPage';
-import TestPage from './pages/TestPage';
-import NotFoundPage from './pages/NotFoundPage';
+import LoadingSpinner from './components/LoadingSpinner';
 import './styles/index.css';
+
+// Lazy load page components
+const HomePage = lazy(() => import('./pages/HomePage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const TeamPage = lazy(() => import('./pages/TeamPage'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+
+// Loading component for Suspense fallback
+const PageLoading = () => (
+  <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+    <LoadingSpinner size="lg" />
+  </div>
+);
 
 const queryClient = new QueryClient();
 
@@ -18,21 +29,24 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <DraftProvider>
-          <div className="min-h-screen bg-gray-50">
-            <Layout>
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="/teams/:teamId" element={<TeamPage />} />
-                <Route path="/test" element={<TestPage />} />
-                <Route path="*" element={<NotFoundPage />} />
-              </Routes>
-            </Layout>
-            <Toaster position="bottom-right" />
-          </div>
-        </DraftProvider>
+        <AppProvider>
+          <DraftProvider>
+            <div className="min-h-screen bg-gray-50">
+              <Layout>
+                <Suspense fallback={<PageLoading />}>
+                  <Routes>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/register" element={<RegisterPage />} />
+                    <Route path="/teams/:teamId" element={<TeamPage />} />
+                    <Route path="*" element={<NotFoundPage />} />
+                  </Routes>
+                </Suspense>
+              </Layout>
+            </div>
+          </DraftProvider>
+        </AppProvider>
+        <Toaster position="bottom-right" />
       </AuthProvider>
     </QueryClientProvider>
   );

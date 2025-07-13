@@ -30,9 +30,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 });
 
 // Add a response interceptor to handle auth state changes
-supabase.auth.onAuthStateChange((event, session) => {
-  console.log('Auth state changed:', { event, session: session ? 'Session exists' : 'No session' });
-  
+supabase.auth.onAuthStateChange((event) => {
   if (event === 'SIGNED_OUT') {
     // Clear any sensitive data from localStorage
     localStorage.removeItem('supabase.auth.token');

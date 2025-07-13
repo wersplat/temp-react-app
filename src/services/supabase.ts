@@ -163,13 +163,14 @@ type DraftPickWithTeam = DbDraftPick & {
 
 // Application representation of a draft pick with expanded relationships
 // Base draft pick type that matches the database schema
-export interface DraftPickBase {
+interface DraftPickBase {
   id: number;
   event_id: string | null;
   team_id: string | null;
-  player: string | Player;
-  player_id?: string | null;  // Made optional with ?
+  player: string | Player;  // Can be just the ID or the full player object
+  player_id?: string | null; // Add this line to match the database schema
   pick: number;
+  pick_number: number; // The sequential pick number in the draft
   round: number;
   player_position: PlayerPosition | null;
   created_by: string | null;
@@ -177,10 +178,9 @@ export interface DraftPickBase {
   updated_at: string;
   traded: boolean;
   notes: string | null;
-  team?: Team;
+  team?: Team; // Optional team info for the draft pick
 }
 
-// Extended type for the application
 export type DraftPick = DraftPickBase;
 
 // Helper function to handle API errors

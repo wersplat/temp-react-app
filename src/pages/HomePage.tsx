@@ -1,5 +1,5 @@
 import { useDraft } from '../context/DraftContext/useDraft';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext/useAuth';
 import DraftBoard from '../components/DraftBoard';
 import type { Player, PlayerPosition } from '../services/supabase';
 import { getPositionAbbreviation } from '../utils/playerUtils';

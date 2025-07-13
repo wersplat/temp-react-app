@@ -1,5 +1,9 @@
+import { memo, useMemo } from 'react';
 import type { Team, Player, DraftPick, PlayerPosition } from '../services/supabase';
 import { getPositionAbbreviation } from '../utils/playerUtils';
+import TeamHeader from './TeamHeader';
+import DraftPicksList from './DraftPicksList';
+import AvailablePlayersList from './AvailablePlayersList';
 
 /**
  * Props for the TeamCard component.
@@ -41,42 +45,44 @@ interface TeamCardProps {
  *   />
  * );
  */
-const TeamCard = ({
+const TeamCard: React.FC<TeamCardProps> = ({
   team,
   picks = [],
   players = [],
   isCurrentTeam = false,
   onSelectPlayer,
   isDraftInProgress = true,
-}: TeamCardProps) => {
-  // Get player details for each pick
-  const picksWithPlayers = picks
-    .filter((pick): pick is DraftPick & { player: Player } => 
-      pick.player !== null && typeof pick.player !== 'string'
-    )
-    .map(pick => ({
-      ...pick,
-      player: pick.player as Player
-    }));
+}) => {
+  // Memoize the transformation of picks to include player details
+  const picksWithPlayers = useMemo(() => 
+    picks
+      .filter((pick): pick is DraftPick & { player: Player } => 
+        pick.player !== null && typeof pick.player !== 'string'
+      )
+      .map(pick => ({
+        ...pick,
+        player: pick.player as Player
+      })),
+    [picks]
+  );
 
-  /**
-   * Counts the number of players at each position for the team.
-   */
-  const positionCounts = picksWithPlayers.reduce<Record<string, number>>((acc, { player }) => {
-    const position = player.position || 'Flex';
-    acc[position] = (acc[position] || 0) + 1;
-    return acc;
-  }, {});
+  // Memoize the position counts calculation
+  const positionCounts = useMemo(() => 
+    picksWithPlayers.reduce<Record<string, number>>((acc, { player }) => {
+      const position = player.position || 'Flex';
+      acc[position] = (acc[position] || 0) + 1;
+      return acc;
+    }, {}),
+    [picksWithPlayers]
+  );
 
   /**
    * Determines the team's positional needs based on current roster.
    * @returns {string[]} Array of position needs in the format "POS (current/required)"
-   * @example
-   * // Returns ["QB (0/1)", "RB (1/2)"]
-   * teamNeeds();
    */
-  const teamNeeds = () => {
-    const needs: string[] = [];
+  // Memoize the team needs calculation
+  const needs = useMemo(() => {
+    const needsList: string[] = [];
     const positionRequirements: Record<string, number> = {
       'Point Guard': 1,
       'Shooting Guard': 1,
@@ -93,12 +99,12 @@ const TeamCard = ({
       const current = positionCounts[position] || 0;
       if (current < required) {
         const abbrev = getPositionAbbreviation(position as PlayerPosition);
-        needs.push(`${abbrev} (${current}/${required})`);
+        needsList.push(`${abbrev} (${current}/${required})`);
       }
     });
 
-    return needs.length > 0 ? needs : ['No immediate needs'];
-  };
+    return needsList.length > 0 ? needsList : ['No immediate needs'];
+  }, [positionCounts]);
 
   return (
     <article 
@@ -108,38 +114,12 @@ const TeamCard = ({
       aria-labelledby={`team-${team.id}-name`}
       aria-describedby={`team-${team.id}-picks`}
     >
-      {/* Team Header */}
-      <div className="px-3 py-4 sm:px-4 md:px-6 bg-gray-50">
-        <div className="flex items-start sm:items-center">
-          {team.logo_url ? (
-            <img 
-              className="h-10 w-10 rounded-full"
-              src={team.logo_url}
-              alt={`${team.name} logo`}
-            />
-          ) : (
-            <div 
-              className="flex-shrink-0 h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-lg sm:text-xl font-bold text-gray-500 mr-3 sm:mr-4"
-              aria-hidden="true"
-            >
-              {team.name.charAt(0)}
-            </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <h3 id={`team-${team.id}-name`} className="text-base sm:text-lg font-medium text-gray-900 truncate">
-              {team.name}
-              {isCurrentTeam && (
-                <span className="sr-only"> (current team on the clock)</span>
-              )}
-            </h3>
-            <p className="text-xs sm:text-sm text-gray-500">
-              <span>{picks.length} {picks.length === 1 ? 'pick' : 'picks'}</span>
-              <span aria-hidden="true"> • </span>
-              <span className="whitespace-normal">{teamNeeds().join(', ')}</span>
-            </p>
-          </div>
-        </div>
-      </div>
+      <TeamHeader 
+        team={team} 
+        picksCount={picks.length} 
+        needs={needs} 
+        isCurrentTeam={isCurrentTeam} 
+      />
 
       {/* Team Picks */}
       <div className="border-t border-gray-200">
@@ -149,38 +129,7 @@ const TeamCard = ({
           </h4>
         </div>
         <div className="divide-y divide-gray-200">
-          {picksWithPlayers.length > 0 ? (
-            <ul className="divide-y divide-gray-200 max-h-48 overflow-y-auto">
-              {picksWithPlayers.map((pick) => (
-                <li key={`${pick.team_id}-${pick.pick}`} className="px-3 py-2 sm:px-4 sm:py-3 hover:bg-gray-50">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 w-8 text-sm font-medium text-gray-500">
-                      {pick.pick}
-                    </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">
-                        {pick.player.name}
-                      </div>
-                      <div className="flex items-center mt-1">
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-medium bg-blue-100 text-blue-800 mr-2">
-                          {getPositionAbbreviation(pick.player.position)}
-                        </span>
-                        {pick.player.team_name && (
-                          <span className="text-xs text-gray-500">
-                            {pick.player.team_name}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="px-4 py-3 text-sm text-gray-500">
-              No picks made yet
-            </div>
-          )}
+          <DraftPicksList picks={picksWithPlayers} />
         </div>
       </div>
 
@@ -196,43 +145,11 @@ const TeamCard = ({
             </h4>
           </div>
           <div className="max-h-48 overflow-y-auto">
-            {players.length > 0 ? (
-              <ul className="divide-y divide-gray-200">
-                {players
-                  .slice(0, 5) // Show top 5 available players
-                  .map((player) => (
-                    <li key={player.id} className="px-3 py-2 sm:px-4 hover:bg-gray-50">
-                      <button
-                        onClick={() => onSelectPlayer?.(player)}
-                        onKeyDown={(e) => {
-                          if ((e.key === 'Enter' || e.key === ' ') && onSelectPlayer) {
-                            e.preventDefault();
-                            onSelectPlayer(player);
-                          }
-                        }}
-                        className="w-full text-left focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded-md p-2"
-                        aria-describedby={`team-${team.id}-available`}
-                        aria-label={`Select ${player.name}, ${player.position || 'Flex'}${player.team_name ? `, ${player.team_name}` : ''}`}
-                        tabIndex={0}
-                      >
-                        <p className="text-sm font-medium text-gray-900 truncate">{player.name}</p>
-                        <p className="text-xs text-gray-500 flex items-center mt-1">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-2xs font-medium bg-indigo-100 text-indigo-800 mr-2">
-                            {player.position || 'Flex'}
-                          </span>
-                          {player.team_name && (
-                            <span className="truncate">{player.team_name}</span>
-                          )}
-                        </p>
-                      </button>
-                    </li>
-                  ))}
-              </ul>
-            ) : (
-              <div className="px-4 py-3 text-sm text-gray-500">
-                No available players
-              </div>
-            )}
+            <AvailablePlayersList 
+              players={players} 
+              teamId={team.id} 
+              onSelectPlayer={onSelectPlayer} 
+            />
           </div>
         </div>
       )}
@@ -240,4 +157,5 @@ const TeamCard = ({
   );
 };
 
-export default TeamCard;
+// Memoize the component to prevent unnecessary re-renders
+export default memo(TeamCard) as React.FC<TeamCardProps>;
