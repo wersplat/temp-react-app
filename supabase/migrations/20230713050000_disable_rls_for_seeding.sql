@@ -1,0 +1,11 @@
+-- Disable RLS on all tables for seeding
+ALTER TABLE draft_picks DISABLE ROW LEVEL SECURITY;
+ALTER TABLE players DISABLE ROW LEVEL SECURITY;
+ALTER TABLE profiles DISABLE ROW LEVEL SECURITY;
+ALTER TABLE teams DISABLE ROW LEVEL SECURITY;
+
+-- Re-enable RLS after seeding (this is a comment for reference, will need to be run manually)
+-- ALTER TABLE draft_picks ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE players ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
