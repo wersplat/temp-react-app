@@ -918,13 +918,13 @@ export const eventsApi = {
   create: async (
     name: string, 
     description: string | null = null, 
-    startDate: string | null = null, 
+    date: string | null = null, 
     isActive: boolean = true,
-    draftType: string = 'snake', // Default draft type
-    numTeams: number = 12, // Default number of teams
-    pickTimeSeconds: number | null = 60, // Default pick time
-    picksPerTeam: number = 15, // Default picks per team
-    prizePool: number | null = null // Optional prize pool
+    draftType: string = 'snake',
+    numTeams: number = 12,
+    pickTimeSeconds: number | null = 60,
+    picksPerTeam: number = 15,
+    prizePool: number | null = null
   ): Promise<Event | null> => {
     try {
       const isAuthenticated = await ensureAuth();
@@ -932,11 +932,11 @@ export const eventsApi = {
         throw new Error('You must be authenticated to create an event');
       }
 
-      // Use the actual database schema fields
+      // Map to database schema
       const insertData = {
         name,
         description,
-        date: startDate, // Using 'date' instead of 'start_date' to match DB
+        date,
         draft_type: draftType,
         num_teams: numTeams,
         pick_time_seconds: pickTimeSeconds,
@@ -947,7 +947,7 @@ export const eventsApi = {
 
       const { data, error } = await supabase
         .from('events')
-        .insert([insertData]) // Wrap in array as required by Supabase
+        .insert([insertData])
         .select('*')
         .single();
 
@@ -956,15 +956,14 @@ export const eventsApi = {
         throw error;
       }
 
-      // Map the database response to our Event type
-      const eventData = data as any; // Use any to bypass type checking since we know the shape
-      
+      // Map from database schema to Event interface
+      const eventData = data as any; // We'll map the fields manually
       return {
         id: eventData.id,
         name: eventData.name,
         description: eventData.description,
-        startDate: eventData.date, // Map 'date' back to 'startDate'
-        endDate: null, // No end_date in the actual schema
+        startDate: eventData.date,  // Map 'date' to 'startDate'
+        endDate: null,              // Not in database, set to null
         isActive: eventData.is_active,
         createdBy: eventData.created_by,
         createdAt: eventData.created_at,
@@ -988,13 +987,13 @@ export const eventsApi = {
         return [];
       }
 
-      // Map the database response to our Event type
+      // Map each database row to our Event interface
       return (data || []).map((event: any) => ({
         id: event.id,
         name: event.name,
         description: event.description,
-        startDate: event.date, // Map 'date' to 'startDate'
-        endDate: null, // No end_date in the actual schema
+        startDate: event.date,  // Map 'date' to 'startDate'
+        endDate: null,          // Not in database, set to null
         isActive: event.is_active,
         createdBy: event.created_by,
         createdAt: event.created_at,
