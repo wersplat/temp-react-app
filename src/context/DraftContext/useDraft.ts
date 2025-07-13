@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState, useCallback, useMemo } from 'react';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { 
@@ -39,447 +39,324 @@ export const useDraft = (): DraftContextType => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   
   // Fetch teams, players, and draft picks with event filtering
-  const teamsQuery = useQuery<Team[]>({
+  const teamsQuery = useQuery<Team[], Error>({
     queryKey: ['teams', currentEventId],
     queryFn: () => currentEventId ? teamsApi.getByEvent(currentEventId) : Promise.resolve([]),
     enabled: !!currentEventId,
   });
 
-  const playersQuery = useQuery<Player[]>({
+  const playersQuery = useQuery<Player[], Error>({
     queryKey: ['players', currentEventId],
     queryFn: () => currentEventId ? playersApi.getByEvent(currentEventId) : Promise.resolve([]),
     enabled: !!currentEventId,
   });
 
-  const draftPicksQuery = useQuery<DraftPick[]>({
+  const draftPicksQuery = useQuery<DraftPick[], Error>({
     queryKey: ['draftPicks', currentEventId],
     queryFn: () => currentEventId ? draftPicksApi.getByEvent(currentEventId) : Promise.resolve([]),
     enabled: !!currentEventId,
   });
 
-  // Extract data with default empty arrays
+  // Extract data from queries
   const teams = teamsQuery.data || [];
   const players = playersQuery.data || [];
   const draftPicks = draftPicksQuery.data || [];
-  
-  // Memoize the current team based on the current pick
-  const currentTeam = useMemo(() => {
-    if (!teams.length) return null;
-    return teams[(currentPick - 1) % teams.length];
-  }, [teams, currentPick]);
-  
-  // Memoize drafted players
-  const draftedPlayers = useMemo(() => {
-    return draftPicks.map(pick => pick.player_id).filter(Boolean) as string[];
-  }, [draftPicks]);
-  
-  // Memoize available players (not yet drafted)
-  const availablePlayers = useMemo(() => {
-    return players.filter(player => !draftedPlayers.includes(player.id));
-  }, [players, draftedPlayers]);
-  
-  // Memoize team rosters
-  const teamRosters = useMemo(() => {
-    const rosters: Record<string, Player[]> = {};
-    teams.forEach(team => {
-      rosters[team.id] = draftPicks
-        .filter(pick => pick.team_id === team.id)
-        .map(pick => players.find(p => p.id === pick.player_id))
-        .filter(Boolean) as Player[];
-    });
-    return rosters;
-  }, [teams, draftPicks, players]);
-  
-  // Get the current round number
-  const currentRound = useMemo(() => {
-    return teams.length ? Math.ceil(currentPick / teams.length) : 1;
-  }, [currentPick, teams.length]);
-  
-  // Get the current team's turn
-  const currentTeamTurn = useMemo(() => {
-    if (!teams.length) return null;
-    return teams[(currentPick - 1) % teams.length];
-  }, [teams, currentPick]);
 
-  // Get drafted players with team info
-  const draftedPlayersWithTeam = useMemo(() => {
-    return draftPicks.map(pick => ({
-      ...pick,
-      team: teams.find(team => team.id === pick.team_id)
-    }));
-  }, [draftPicks, teams]);
+
+  // Compute derived data
+  const draftedPlayers = useMemo(() => {
+    if (!draftPicks?.length || !players?.length) return [];
+    
+    return players.filter(player => 
+      draftPicks.some(pick => 
+        (typeof pick.player === 'string' && pick.player === player.name) || 
+        (typeof pick.player === 'object' && pick.player?.id === player.id)
+      )
+    );
+  }, [draftPicks, players]);
 
   // Get undrafted players
   const availablePlayers = useMemo(() => {
-    const draftedPlayerIds = new Set(draftPicks.map(pick => pick.player_id));
-    return players.filter(player => !draftedPlayerIds.has(player.id));
-  }, [players, draftPicks]);
-
-  // Skip the current pick
-  const skipPick = useCallback(() => {
-    if (!currentEventId) {
-      toast('No event selected', 'error');
-      return;
-    }
-    setCurrentPick(prev => prev + 1);
-    setTimeLeft(DRAFT_DURATION);
-  }, [currentEventId, toast]);
-
-  // Timer effect
-  useEffect(() => {
-    if (isPaused || isLoadingDraftPicks) return;
+    if (!players?.length) return [];
     
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          // Auto-skip if time runs out
-          skipPick();
-          return DRAFT_DURATION;
-        }
-        return prev - 1;
+    return players.filter(player => 
+      !draftedPlayers.some(dp => dp.id === player.id)
+    );
+  }, [players, draftedPlayers]);
+
+  // Calculate team rosters
+  /*
+  // Team rosters calculation currently unused – can be re-enabled when needed
+  const teamRosters = useMemo(() => {
+    if (!teams?.length || !draftPicks?.length) return {};
+    
+    return teams.reduce<Record<string, Player[]>>((acc, team) => {
+      acc[team.id] = draftedPlayers.filter(player => {
+        const pick = draftPicks.find(p => 
+          (typeof p.player === 'string' && p.player === player.name) || 
+          (typeof p.player === 'object' && p.player?.id === player.id)
+        );
+        return pick?.team_id === team.id;
       });
-    }, 1000);
+      return acc;
+    }, {});
+  }, [teams, draftPicks, draftedPlayers]);
+  */
 
-    return () => clearInterval(timer);
-  }, [isPaused, isLoadingDraftPicks, skipPick]);
+  // Calculate current round based on current pick and number of teams
+  const currentRound = useMemo(() => {
+    if (!teams?.length || !currentPick) return 1;
+    return Math.ceil(currentPick / teams.length);
+  }, [currentPick, teams]);
 
-  // Show toast when draft is paused/resumed
-  useEffect(() => {
-    if (isLoadingDraftPicks) return;
-    toast(isPaused ? 'Draft paused' : 'Draft resumed', 'info');
-  }, [isPaused, isLoadingDraftPicks, toast]);
+  // Calculate which team's turn it is
+  const currentTeamTurn = useMemo(() => {
+    if (!teams?.length || !currentPick) return null;
+    const pickInRound = ((currentPick - 1) % teams.length) + 1;
+    return teams.find(team => team.draft_order === pickInRound) || null;
+  }, [currentPick, teams]);
 
-  // Show toast when pick is skipped
-  useEffect(() => {
-    if (isLoadingDraftPicks) return;
-    if (timeLeft === DRAFT_DURATION) {
-      toast('Pick skipped', 'info');
-    }
-  }, [timeLeft, isLoadingDraftPicks, toast]);
+  // Get drafted players with team info
+  const draftedPlayersWithTeam = useMemo(() => {
+    if (!draftPicks?.length || !players?.length || !teams?.length) return [];
+    
+    return draftPicks
+      .filter(pick => pick.player && pick.team_id)
+      .map(pick => {
+        const player = typeof pick.player === 'string' 
+          ? players.find(p => p.name === pick.player)
+          : players.find(p => p.id === (pick.player as Player).id);
+          
+        const team = teams.find(t => t.id === pick.team_id);
+        
+        if (!player || !team) return null;
+        
+        return {
+          ...player,
+          team_id: pick.team_id || '',
+          team_name: team.name,
+          pick_number: pick.pick
+        };
+      })
+      .filter((p): p is Player & { team_id: string; team_name: string; pick_number: number } => 
+        p !== null
+      );
+  }, [draftPicks, players, teams]);
 
-  // Get undrafted players (players not in draftPicks for this event)
-  const undraftedPlayers = players.filter(player => 
-    !draftPicks.some(pick => 
-      typeof pick.player === 'object' ? 
-        pick.player?.id === player.id : 
-        pick.player === player.id
-    )
-
-  // Get drafted players with their team info
-  const draftedPlayers = draftPicks
-    .map(pick => {
-      const player = players.find(p => p.id === pick.player_id);
-      const team = teams.find(t => t.id === pick.team_id);
-      return player && team ? {
-        ...player,
-        team_id: team.id,
-        team_name: team.name,
-        pick_number: pick.pick_number
-      } : null;
-    })
-    .filter((p): p is Player & { team_id: string; team_name: string; pick_number: number } => p !== null);
-
-  // Mutation for selecting a player
-  const selectPlayerMutation = useMutation({
+  // Draft a player
+  const draftPlayer = useMutation<void, Error, string>({
     mutationFn: async (playerId: string) => {
-      if (!currentEventId) {
-        throw new Error('No event selected');
+      if (!currentEventId || !user) {
+        throw new Error('Missing event ID or user');
       }
-
-      const currentTeam = teams[(currentPick - 1) % teams.length];
-        event_id: currentEventId,
-        team_id: teamId,
-        player: playerId,
-        player_id: playerId,
-        pick: currentPick,
-        pick_number: currentPick,
-        round: Math.ceil(currentPick / teams.length),
-        player_position: players.find(p => p.id === playerId)?.position || null,
-        created_by: user.id,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        traded: false,
-        notes: null,
-      };
-
-      await draftPicksApi.createDraftPick(newPick);
       
-      // Invalidate and refetch
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['draftPicks', currentEventId] }),
-        queryClient.invalidateQueries({ queryKey: ['players', currentEventId] }),
-      ]);
+      setIsLoading(true);
       
-      // Move to next pick
-      setCurrentPick(prev => prev + 1);
-      setTimeLeft(DRAFT_DURATION);
-      
-      toast('Player drafted successfully', 'success');
-    } catch (error) {
-      console.error('Error creating draft pick:', error);
-      toast('Failed to draft player', 'error');
+      try {
+        const player = players.find(p => p.id === playerId);
+        if (!player) {
+          throw new Error('Player not found');
+        }
+        
+        const teamId = currentTeamTurn?.id;
+        if (!teamId) {
+          throw new Error('No team found for current pick');
+        }
+        
+        // Create the draft pick
+        const newPick: Omit<DraftPick, 'id' | 'created_at' | 'updated_at'> = {
+          event_id: currentEventId,
+          team_id: teamId,
+          player: player,
+          player_id: player.id,
+          pick: currentPick,
+          pick_number: currentPick,
+          round: currentRound,
+          player_position: player.position,
+          created_by: user.id,
+          traded: false,
+          notes: null
+        };
+        
+        // Save to database
+        await draftPicksApi.createDraftPick(newPick);
+        
+        // Update draft state
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any).rpc('update_draft_state', {
+          p_event_id: currentEventId,
+          p_is_paused: isPaused,
+          p_current_pick: currentPick + 1
+        });
+        
+        // Update local state
+        setCurrentPick(prev => prev + 1);
+        setTimeLeft(DRAFT_DURATION);
+        
+        // Invalidate queries to refresh data
+        await queryClient.invalidateQueries({ queryKey: ['draftPicks', currentEventId] });
+        
+        toast(`${player.name} was drafted by ${currentTeamTurn?.name}`, 'success');
+        
+        return;
+      } catch (error) {
+        toast(error instanceof Error ? error.message : 'Failed to draft player', 'error');
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }, [currentEventId, currentPick, players, queryClient, teams.length, toast, user?.id]);
+  });
 
-  // Toggle pause state
-  const togglePause = useCallback(() => {
-    setIsPaused(prev => !prev);
-  }, []);
-
-  // Pause/resume the draft
+  // Toggle pause draft
   const togglePauseDraft = useCallback(async () => {
-    if (!currentEventId) {
-      toast({
-        title: 'Error',
-        description: 'No event selected',
-        status: 'error',
-      });
-      return;
-    }
-
+    if (!currentEventId) return;
+    
     try {
-      const { error } = await supabase.rpc('update_draft_state', {
+      setIsLoading(true);
+      
+      // Update draft state in database
+      await (supabase as any).rpc('update_draft_state', {
         p_event_id: currentEventId,
         p_is_paused: !isPaused,
         p_current_pick: currentPick
       });
-
-      if (error) throw error;
-
+      
+      // Update local state
       setIsPaused(prev => !prev);
-      toast({
-        title: isPaused ? 'Draft Resumed' : 'Draft Paused',
-        status: 'success',
-      });
+      
+      toast(isPaused ? 'Draft Resumed' : 'Draft Paused', 'info');
     } catch (error) {
-      console.error('Error toggling draft pause state:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update draft state',
-        status: 'error',
-      });
+      toast(error instanceof Error ? error.message : 'Failed to toggle pause', 'error');
+    } finally {
+      setIsLoading(false);
     }
-  }, [currentEventId, isPaused, currentPick, toast, setIsPaused]);
+  }, [currentEventId, isPaused, currentPick, toast]);
 
-  // Set up real-time subscriptions for draft updates
+  // Reset draft
+  const resetDraft = useCallback(async () => {
+    if (!currentEventId) return;
+    
+    try {
+      setIsLoading(true);
+      
+      // Call reset_draft RPC function
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).rpc('reset_draft', {
+        p_event_id: currentEventId
+      });
+      
+      // Update local state
+      setCurrentPick(1);
+      setIsPaused(true);
+      setTimeLeft(DRAFT_DURATION);
+      
+      // Invalidate queries to refresh data
+      await queryClient.invalidateQueries({ queryKey: ['draftPicks', currentEventId] });
+      
+      toast('Draft reset successfully', 'success');
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'Failed to reset draft', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentEventId, queryClient, toast]);
+
+  // Set up realtime subscriptions
   const setupRealtimeSubscriptions = useCallback(({
     onPick,
     onPause,
-    onReset,
+    onReset
   }: {
     onPick?: (pick: { pick_number: number }) => void;
-    onPause?: (paused: boolean) => void;
+    onPause?: (isPaused: boolean) => void;
     onReset?: () => void;
   } = {}) => {
     if (!currentEventId) return () => {};
-
+    
     // Subscribe to draft picks changes
-    const picksChannel = supabase
-      .channel('draft_picks_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'draft_picks',
-          filter: `event_id=eq.${currentEventId}`,
-        },
-        (payload: any) => {
-          const newPick = payload.new as { pick_number: number };
-          onPick?.(newPick);
+    const picksChannel = supabase.channel('draft_picks_changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'draft_picks', filter: `event_id=eq.${currentEventId}` },
+        (payload) => {
+          onPick?.(payload.new as { pick_number: number });
           queryClient.invalidateQueries({ queryKey: ['draftPicks', currentEventId] });
         }
       )
       .subscribe();
-
-    // Subscribe to draft state changes (paused/resumed)
-    const stateChannel = supabase
-      .channel('draft_state_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'draft_state',
-          filter: `event_id=eq.${currentEventId}`,
-        },
-        (payload: any) => {
-          const state = payload.new as DraftState;
-          if (typeof state.is_paused === 'boolean') {
-            onPause?.(state.is_paused);
-            setIsPaused(state.is_paused);
+    
+    // Subscribe to draft state changes
+    const stateChannel = supabase.channel('draft_state_changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'draft_state', filter: `event_id=eq.${currentEventId}` },
+        (payload) => {
+          const newState = payload.new as DraftState;
+          setIsPaused(newState.is_paused);
+          setCurrentPick(newState.current_pick);
+          
+          if (newState.is_paused) {
+            onPause?.(true);
+          } else {
+            onPause?.(false);
           }
-          if (typeof state.current_pick === 'number') {
-            setCurrentPick(state.current_pick);
+          
+          if (newState.current_pick === 1) {
+            onReset?.();
           }
         }
       )
       .subscribe();
-
-    // Cleanup function
+    
+    // Return cleanup function
     return () => {
       supabase.removeChannel(picksChannel);
       supabase.removeChannel(stateChannel);
     };
   }, [currentEventId, queryClient]);
 
-  // Initialize draft state on mount
-  useEffect(() => {
-    if (!currentEventId) return;
+  // Skip pick
+  const skipPick = useCallback(async () => {
+    if (!currentEventId || isPaused) return;
     
-    // Fetch initial draft state
-    const fetchDraftState = async () => {
-      const { data, error } = await supabase
-        .from('draft_state')
-        .select('*')
-        .eq('event_id', currentEventId)
-        .single();
-        
-      if (data) {
-        setIsPaused(data.is_paused);
-        setCurrentPick(data.current_pick || 1);
-      } else if (error && error.code !== 'PGRST116') { // Ignore not found error
-        console.error('Error fetching draft state:', error);
-      }
-    };
-    
-    fetchDraftState();
-  }, [currentEventId]);
-
-  // Set up timer for draft picks
-  useEffect(() => {
-    if (isPaused || !currentEventId) return;
-    
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          // Auto-skip if time runs out
-          skipPick();
-          return DRAFT_DURATION;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [isPaused, currentEventId, skipPick]);
-
-  const skipPick = useCallback(() => {
-    if (!currentEventId || !currentTeamTurn) return;
-
-    // Increment the current pick
-    setCurrentPick(prev => prev + 1);
-    setTimeLeft(DRAFT_DURATION);
-
-    // Update the draft state in the database
-    supabase.rpc('update_draft_state', {
-      p_event_id: currentEventId,
-      p_is_paused: isPaused,
-      p_current_pick: currentPick + 1,
-    }).then(({ error }) => {
-      if (error) {
-        console.error('Error updating draft state:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to update draft state',
-          status: 'error',
-        });
-      } else {
-        toast({
-          title: 'Pick Skipped',
-          description: `Team ${currentTeamTurn.name}'s pick was skipped`,
-          status: 'info',
-        });
-      }
-    });
-  }, [
-    currentEventId,
-    currentTeamTurn,
-    isPaused,
-    currentPick,
-    toast,
-    setCurrentPick,
-    setTimeLeft,
-  ]);
-
-  const resetDraft = useCallback(async () => {
-    if (!currentEventId) return;
-
-    const confirmed = window.confirm(
-      'Are you sure you want to reset the draft? This will delete all draft picks and reset the draft state.'
-    );
-
-    if (!confirmed) return;
-
     try {
-      const { error } = await supabase.rpc('reset_draft', {
+      setIsLoading(true);
+      
+      // Update draft state in database
+      await (supabase as any).rpc('update_draft_state', {
         p_event_id: currentEventId,
+        p_is_paused: isPaused,
+        p_current_pick: currentPick + 1
       });
-
-      if (error) throw error;
-
-      // Reset local state
-      setCurrentPick(1);
-      setIsPaused(true);
+      
+      // Update local state
+      setCurrentPick(prev => prev + 1);
       setTimeLeft(DRAFT_DURATION);
-
-      // Invalidate queries to refetch data
-      queryClient.invalidateQueries({ queryKey: ['draftPicks', currentEventId] });
-
-      toast({
-        title: 'Draft Reset',
-        description: 'The draft has been reset successfully',
-        status: 'success',
-      });
+      
+      toast(`${currentTeamTurn?.name || 'Team'} skipped their pick`, 'info');
     } catch (error) {
-      console.error('Error resetting draft:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to reset draft',
-        status: 'error',
-      });
+      toast(error instanceof Error ? error.message : 'Failed to skip pick', 'error');
+    } finally {
+      setIsLoading(false);
     }
-  }, [
-    currentEventId,
-    queryClient,
-    toast,
-    setCurrentPick,
-    setIsPaused,
-    setTimeLeft,
-  ]);
+  }, [currentEventId, isPaused, currentPick, currentTeamTurn, toast]);
 
+  // Return the context value
   return {
-    // Query objects for React Query integration
-    teamsQuery: null,
-    playersQuery: null,
-    draftPicksQuery: null,
-
-    draftPicksQuery,
-    
-    // Draft state
-    currentPick,
-    currentRound,
-    currentTeam: currentTeamTurn,
-    timeLeft,
-    isPaused,
-    
-    // Computed values
+    teams,
+    players: availablePlayers,
     draftedPlayers: draftedPlayersWithTeam,
-    availablePlayers: undraftedPlayers,
-    teamRosters,
-    
-    // Actions
-    selectPlayer: selectPlayerMutation.mutateAsync,
+    draftPicks,
+    currentPick,
+    isPaused,
+    timeLeft,
+    isLoading,
+    teamsQuery,
+    playersQuery,
+    draftPicksQuery,
+    selectPlayer: (playerId: string) => draftPlayer.mutateAsync(playerId),
     skipPick,
-    togglePauseDraft,
+    togglePause: togglePauseDraft,
     resetDraft,
-    setupRealtimeSubscriptions,
-    
-    // Loading states
-    isLoading: teamsQuery.isLoading || playersQuery.isLoading || draftPicksQuery.isLoading,
-    isError: teamsQuery.isError || playersQuery.isError || draftPicksQuery.isError,
-    error: teamsQuery.error || playersQuery.error || draftPicksQuery.error,
+    setupRealtimeSubscriptions
   };
 };

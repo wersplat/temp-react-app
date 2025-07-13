@@ -64,6 +64,7 @@ type Database = {
           event_id: string | null;
           team_id: string | null;
           pick: number;
+          pick_number: number;
           round: number;
           player: string;
           player_position: PlayerPosition | null;
@@ -420,6 +421,7 @@ export const draftPicksApi = {
           player: playerName,
           player_id: player?.id || null,
           pick: pick.pick,
+          pick_number: pick.pick,
           round: pick.round || Math.ceil(pick.pick / 10),
           player_position: toPlayerPosition(pick.player_position),
           created_by: pick.created_by || 'system',
@@ -486,6 +488,7 @@ export const draftPicksApi = {
           player: playerName,
           player_id: player?.id || null,
           pick: pick.pick,
+          pick_number: pick.pick,
           round: pick.round || Math.ceil(pick.pick / 10),
           player_position: toPlayerPosition(pick.player_position),
           created_by: pick.created_by || 'system',
@@ -570,6 +573,7 @@ export const draftPicksApi = {
           player: playerName,
           player_id: player?.id || null,
           pick: pick.pick,
+          pick_number: pick.pick,
           round: pick.round || Math.ceil(pick.pick / 10), // Default round calculation if missing
           player_position: toPlayerPosition(pick.player_position),
           created_by: pick.created_by || 'system',
@@ -636,6 +640,7 @@ export const draftPicksApi = {
         player: typeof pickData.player === 'string' ? pickData.player : pickData.player.name,
         player_id: typeof pickData.player === 'string' ? null : pickData.player.id,
         pick: data.pick,
+        pick_number: data.pick,
         round: data.round || Math.ceil(data.pick / 10),
         player_position: playerPos,
         created_by: data.created_by || 'system',

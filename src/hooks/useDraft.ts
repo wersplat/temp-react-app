@@ -69,6 +69,7 @@ export function useDraft(): UseDraftReturn {
   type DbDraftPick = {
     id: number;
     pick: number;
+    pick_number: number;
     round: number;
     player: string;
     team_id: string | null;
@@ -110,7 +111,8 @@ export function useDraft(): UseDraftReturn {
         player_position: pick.player_position || null,
         notes: pick.notes || null,
         traded: pick.traded || false,
-        created_by: pick.created_by || null
+        created_by: pick.created_by || null,
+        pick_number: pick.pick_number || pick.pick || 0
       }));
     },
   };
