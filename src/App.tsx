@@ -8,6 +8,7 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import TeamPage from './pages/TeamPage';
+import TestPage from './pages/TestPage';
 import NotFoundPage from './pages/NotFoundPage';
 import './styles/index.css';
 
@@ -25,6 +26,7 @@ function App() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/teams/:teamId" element={<TeamPage />} />
+                <Route path="/test" element={<TestPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </Layout>

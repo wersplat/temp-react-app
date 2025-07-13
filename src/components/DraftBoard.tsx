@@ -27,16 +27,16 @@ const DraftBoard = ({
     return draftPicks.slice().reverse().map((pick: DraftPick) => (
       <tr key={pick.id} className="hover:bg-gray-50">
         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-          {pick.pick_number}
+          {pick.pick}
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
           {teams.find((t: Team) => t.id === pick.team_id)?.name || 'Unknown Team'}
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-          {pick.player_name}
+          {pick.player}
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-          {pick.player_position}
+          {/* Position not available in current schema */}
         </td>
       </tr>
     ));

@@ -49,20 +49,28 @@ const TeamCard = ({
 }: TeamCardProps) => {
   // Get player details for each pick
   const picksWithPlayers = picks
-    .filter((pick): pick is DraftPick & { player_id: string } => pick.player_id !== null)
-    .map(pick => ({
+    .filter((pick): pick is DraftPick & { team_id: string; player: string } => 
+      pick.team_id !== null && pick.player !== null && pick.player !== ''
+    )
+    .map(({ player, ...pick }) => ({
       ...pick,
-      player: players.find(p => p.id === pick.player_id)
-    }))
-    .filter(pick => pick.player) as Array<DraftPick & { player: Player }>;
+      player: {
+        id: '', // Not available in current schema
+        name: player,
+        position: '', // Not available in current schema
+        team: pick.team_id,
+        available: false,
+        photo_url: null,
+      }
+    }));
 
   /**
    * Counts the number of players at each position for the team.
    * @type {Record<string, number>}
    */
-  const positionCounts = picksWithPlayers.reduce<Record<string, number>>((acc, { player }) => {
-    const position = player.position;
-    acc[position] = (acc[position] || 0) + 1;
+  // Since position is not in current schema, we'll just count all as 'Player'
+  const positionCounts = picksWithPlayers.reduce<Record<string, number>>((acc) => {
+    acc['Player'] = (acc['Player'] || 0) + 1;
     return acc;
   }, {});
 
@@ -146,22 +154,14 @@ const TeamCard = ({
         <div className="divide-y divide-gray-200">
           {picksWithPlayers.length > 0 ? (
             <ul className="divide-y divide-gray-200 max-h-48 overflow-y-auto">
-              {picksWithPlayers.map(({ pick_number, player }) => (
-                <li key={`${team.id}-${pick_number}`} className="px-3 py-2 sm:px-4 sm:py-3 hover:bg-gray-50">
+              {picksWithPlayers.map((pick) => (
+                <li key={`${pick.team_id}-${pick.pick}`} className="px-3 py-2 sm:px-4 sm:py-3 hover:bg-gray-50">
                   <div className="flex items-center">
                     <div className="flex-shrink-0 w-8 text-sm font-medium text-gray-500">
-                      {pick_number}.
+                      {pick.pick}
                     </div>
-                    <div className="ml-2 min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {player.name}
-                      </p>
-                      <p className="text-xs text-gray-500 flex items-center">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mr-2">
-                          {player.position}
-                        </span>
-                        <span className="truncate">{player.team}</span>
-                      </p>
+                    <div className="ml-4">
+                      <div className="text-sm font-medium text-gray-900">{pick.player.name}</div>
                     </div>
                   </div>
                 </li>

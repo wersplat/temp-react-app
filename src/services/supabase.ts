@@ -4,57 +4,60 @@ import { supabase } from '../lib/supabase';
 export type Team = {
   id: string;
   name: string;
-  logo_url: string | null;  
+  logo_url: string | null;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
+  draft_order?: number | null;
+  event_id?: string | null;
+  slug?: string | null;
 };
 
 export type Player = {
   id: string;
   name: string;
-  position: string;
-  team: string | null;
-  available: boolean;
-  photo_url: string | null;
+  position?: string;
+  team?: string | null;
+  available?: boolean;
+  photo_url?: string | null;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
+  event_id?: string | null;
 };
 
 export type DraftPick = {
-  id: string;
-  pick_number: number;
-  team_id: string;
+  id: number;
+  event_id: string | null;
+  team_id: string | null;
+  pick: number;
+  round: number;
+  player: string;
+  notes: string | null;
+  traded: boolean;
+  created_at: string;
+  created_by: string | null;
   team?: {
     id: string;
     name: string;
     logo_url: string | null;
   };
-  player_id: string | null;
-  player_name: string | null;
-  player_position: string | null;
-  created_at: string;
-  updated_at: string;
 };
 
 // Helper function to handle API errors
-const handleApiError = (error: any, context: string) => {
+const handleApiError = (error: unknown, context: string): never => {
   console.error(`Error in ${context}:`, error);
-  const errorMessage = error.message || `Failed to ${context}`;
+  const errorMessage = error instanceof Error ? error.message : `Failed to ${context}`;
   throw new Error(errorMessage);
 };
 
-// Helper to ensure user is authenticated
-const ensureAuth = async () => {
+// Helper to ensure user is authenticated (for write operations)
+const ensureAuth = async (): Promise<boolean> => {
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    throw new Error('Not authenticated. Please sign in.');
-  }
+  return !!session;
 };
 
 // Teams API
 export const teamsApi = {
   getAll: async (): Promise<Team[]> => {
-    await ensureAuth();
     const { data, error } = await supabase
       .from('teams')
       .select('*')
@@ -65,7 +68,6 @@ export const teamsApi = {
   },
 
   getById: async (id: string): Promise<Team | null> => {
-    await ensureAuth();
     const { data, error } = await supabase
       .from('teams')
       .select('*')
@@ -80,7 +82,6 @@ export const teamsApi = {
 // Players API
 export const playersApi = {
   getAll: async (): Promise<Player[]> => {
-    await ensureAuth();
     const { data, error } = await supabase
       .from('players')
       .select('*')
@@ -91,7 +92,6 @@ export const playersApi = {
   },
 
   getAvailable: async (): Promise<Player[]> => {
-    await ensureAuth();
     const { data, error } = await supabase
       .from('players')
       .select('*')
@@ -103,31 +103,56 @@ export const playersApi = {
   },
 
   draftPlayer: async (playerId: string, teamId: string, pickNumber: number): Promise<void> => {
-    await ensureAuth();
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+    
     try {
-      // Get player details first
+      // First, find the draft pick with the matching pick number
+      const { data: draftPick, error: findError } = await supabase
+        .from('draft_picks')
+        .select('*')
+        .eq('pick', pickNumber)
+        .single();
+      
+      if (findError) {
+        handleApiError(findError, 'finding draft pick');
+        return;
+      }
+      
+      // Get the player's name
       const { data: player, error: playerError } = await supabase
         .from('players')
-        .select('*')
+        .select('name')
         .eq('id', playerId)
         .single();
       
-      if (playerError || !player) {
-        throw new Error('Player not found');
+      if (playerError) {
+        handleApiError(playerError, 'fetching player');
+        return;
       }
-
-      // Use the stored procedure for the transaction
-      const { error: draftError } = await supabase.rpc('draft_player_transaction', {
-        p_player_id: playerId,
-        p_team_id: teamId,
-        p_pick_number: pickNumber,
-        p_player_name: player.name,
-        p_player_position: player.position
-      });
-
-      if (draftError) throw draftError;
+      
+      if (!player) {
+        throw new Error(`Player with ID ${playerId} not found`);
+      }
+      
+      // Update the draft pick with the player and team
+      const { error: updateError } = await supabase
+        .from('draft_picks')
+        .update({
+          team_id: teamId,
+          player: player.name, // Store the player's name directly
+          traded: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', draftPick.id);
+      
+      if (updateError) {
+        handleApiError(updateError, 'updating draft pick');
+      }
     } catch (error) {
-      handleApiError(error, 'drafting player');
+      console.error('Error in draftPlayer:', error);
+      throw error; // Re-throw to be handled by the caller
     }
   },
 };
@@ -135,38 +160,67 @@ export const playersApi = {
 // Draft Picks API
 export const draftPicksApi = {
   getAll: async (): Promise<DraftPick[]> => {
-    await ensureAuth();
     const { data, error } = await supabase
       .from('draft_picks')
       .select(`
         *,
-        teams (id, name, logo_url)
-      `)
-      .order('pick_number');
+        team:teams!inner(id, name, logo_url)
+      `);
     
-    if (error) handleApiError(error, 'fetching draft picks');
-    return data || [];
+    if (error) {
+      handleApiError(error, 'fetching all draft picks');
+      return [];
+    }
+    
+    // Transform the data to match the DraftPick type
+    return (data || []).map(pick => ({
+      ...pick,
+      // Ensure team is either the team object or undefined (not null)
+      team: pick.team || undefined
+    }));
   },
 
   getByTeam: async (teamId: string): Promise<DraftPick[]> => {
-    await ensureAuth();
     const { data, error } = await supabase
       .from('draft_picks')
       .select(`
         *,
-        teams (id, name, logo_url)
+        team:teams!inner(id, name, logo_url)
       `)
-      .eq('team_id', teamId)
-      .order('pick_number');
+      .eq('team_id', teamId);
     
-    if (error) handleApiError(error, 'fetching team draft picks');
-    return data || [];
+    if (error) {
+      handleApiError(error, 'fetching team draft picks');
+      return [];
+    }
+    
+    // Transform the data to match the DraftPick type
+    return (data || []).map(pick => ({
+      ...pick,
+      // Ensure team is either the team object or undefined (not null)
+      team: pick.team || undefined
+    }));
   },
 
   resetDraft: async (): Promise<void> => {
-    await ensureAuth();
-    const { error } = await supabase.rpc('reset_draft');
-    if (error) handleApiError(error, 'resetting draft');
+    const isAuthenticated = await ensureAuth();
+    if (!isAuthenticated) {
+      throw new Error('You must be authenticated to reset the draft');
+    }
+    
+    // Clear all draft picks by setting team_id to null and player to empty string
+    const { error } = await supabase
+      .from('draft_picks')
+      .update({
+        team_id: null,
+        player: '',
+        traded: false,
+        notes: null
+      });
+      
+    if (error) {
+      handleApiError(error, 'resetting draft');
+    }
   },
 };
 
