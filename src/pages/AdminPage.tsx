@@ -23,6 +23,11 @@ const AdminPage = () => {
   const [eventDescription, setEventDescription] = useState('');
   const [eventDate, setEventDate] = useState('');
   const [isActive, setIsActive] = useState(true);
+  const [draftType, setDraftType] = useState<'snake' | 'linear'>('snake');
+  const [numTeams, setNumTeams] = useState(12);
+  const [pickTimeSeconds, setPickTimeSeconds] = useState<number | null>(60);
+  const [picksPerTeam, setPicksPerTeam] = useState(15);
+  const [prizePool, setPrizePool] = useState<number | null>(null);
 
   const handleAddPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,13 +62,28 @@ const AdminPage = () => {
       toast.error('Event name is required');
       return;
     }
+
+    if (numTeams < 1) {
+      toast.error('Number of teams must be at least 1');
+      return;
+    }
+
+    if (picksPerTeam < 1) {
+      toast.error('Picks per team must be at least 1');
+      return;
+    }
     
     try {
       await eventsApi.create(
         eventName.trim(),
         eventDescription.trim() || null,
         eventDate || null,
-        isActive
+        isActive,
+        draftType,
+        numTeams,
+        pickTimeSeconds,
+        picksPerTeam,
+        prizePool
       );
       
       toast.success('Event created successfully');
@@ -73,6 +93,11 @@ const AdminPage = () => {
       setEventDescription('');
       setEventDate('');
       setIsActive(true);
+      setDraftType('snake');
+      setNumTeams(12);
+      setPickTimeSeconds(60);
+      setPicksPerTeam(15);
+      setPrizePool(null);
     } catch (err) {
       toast.error(`Failed to create event: ${(err as Error).message}`);
     }
@@ -83,36 +108,21 @@ const AdminPage = () => {
       <div className="bg-white shadow rounded-lg p-6">
         <h2 className="text-2xl font-bold mb-6 text-gray-800">Create Event</h2>
         <form onSubmit={handleCreateEvent} className="space-y-4">
-          <div>
-            <label htmlFor="eventName" className="block text-sm font-medium text-gray-700 mb-1">
-              Event Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              id="eventName"
-              type="text"
-              placeholder="Enter event name"
-              value={eventName}
-              onChange={(e) => setEventName(e.target.value)}
-              className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              required
-            />
-          </div>
-          
-          <div>
-            <label htmlFor="eventDescription" className="block text-sm font-medium text-gray-700 mb-1">
-              Description (Optional)
-            </label>
-            <textarea
-              id="eventDescription"
-              placeholder="Enter event description"
-              value={eventDescription}
-              onChange={(e) => setEventDescription(e.target.value)}
-              rows={3}
-              className="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="eventName" className="block text-sm font-medium text-gray-700 mb-1">
+                Event Name *
+              </label>
+              <input
+                type="text"
+                id="eventName"
+                value={eventName}
+                onChange={(e) => setEventName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                required
+              />
+            </div>
+            
             <div>
               <label htmlFor="eventDate" className="block text-sm font-medium text-gray-700 mb-1">
                 Event Date
@@ -125,24 +135,116 @@ const AdminPage = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="isActive"
-                checked={isActive}
-                onChange={(e) => setIsActive(e.target.checked)}
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-              />
-              <label htmlFor="isActive" className="ml-2 block text-sm text-gray-700">
-                Active
+          </div>
+
+          <div>
+            <label htmlFor="eventDescription" className="block text-sm font-medium text-gray-700 mb-1">
+              Description
+            </label>
+            <textarea
+              id="eventDescription"
+              rows={3}
+              value={eventDescription}
+              onChange={(e) => setEventDescription(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+            <div>
+              <label htmlFor="draftType" className="block text-sm font-medium text-gray-700 mb-1">
+                Draft Type
               </label>
+              <select
+                id="draftType"
+                value={draftType}
+                onChange={(e) => setDraftType(e.target.value as 'snake' | 'linear')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="snake">Snake Draft</option>
+                <option value="linear">Linear Draft</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="numTeams" className="block text-sm font-medium text-gray-700 mb-1">
+                Number of Teams
+              </label>
+              <input
+                type="number"
+                id="numTeams"
+                min="1"
+                value={numTeams}
+                onChange={(e) => setNumTeams(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="picksPerTeam" className="block text-sm font-medium text-gray-700 mb-1">
+                Picks per Team
+              </label>
+              <input
+                type="number"
+                id="picksPerTeam"
+                min="1"
+                value={picksPerTeam}
+                onChange={(e) => setPicksPerTeam(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="pickTimeSeconds" className="block text-sm font-medium text-gray-700 mb-1">
+                Pick Time (seconds)
+              </label>
+              <input
+                type="number"
+                id="pickTimeSeconds"
+                min="0"
+                value={pickTimeSeconds || ''}
+                onChange={(e) => setPickTimeSeconds(e.target.value ? Number(e.target.value) : null)}
+                placeholder="0 for no time limit"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="prizePool" className="block text-sm font-medium text-gray-700 mb-1">
+                Prize Pool ($)
+              </label>
+              <input
+                type="number"
+                id="prizePool"
+                min="0"
+                step="0.01"
+                value={prizePool || ''}
+                onChange={(e) => setPrizePool(e.target.value ? Number(e.target.value) : null)}
+                placeholder="Optional"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            <div className="flex items-end">
+              <div className="flex items-center h-10">
+                <input
+                  type="checkbox"
+                  id="isActive"
+                  checked={isActive}
+                  onChange={(e) => setIsActive(e.target.checked)}
+                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                />
+                <label htmlFor="isActive" className="ml-2 block text-sm text-gray-700">
+                  Active Event
+                </label>
+              </div>
             </div>
           </div>
-          
+
           <div className="pt-2">
             <button
               type="submit"
-              className="w-full md:w-auto px-6 py-2 bg-indigo-600 text-white font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               Create Event
             </button>
