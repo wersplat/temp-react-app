@@ -6,7 +6,8 @@ module.exports = {
   ],
   // Enable dark mode via class strategy
   darkMode: 'class',
-  // JIT mode is the default in Tailwind CSS v3+
+  // Configure JIT mode
+  mode: 'jit',
   // Enable smooth scrolling
   theme: {
     extend: {
@@ -153,7 +154,18 @@ module.exports = {
       },
     },
   },
-  // Variants are now automatically included in Tailwind CSS v3+
+  // Include all variants
+  variants: {
+    extend: {
+      backgroundColor: ['responsive', 'hover', 'focus', 'dark'],
+      textColor: ['responsive', 'hover', 'focus', 'dark'],
+      borderColor: ['responsive', 'hover', 'focus', 'dark'],
+      ringColor: ['responsive', 'hover', 'focus', 'dark'],
+      ringWidth: ['responsive', 'hover', 'focus'],
+      opacity: ['responsive', 'hover', 'focus', 'disabled'],
+      scrollBehavior: ['responsive'],
+    },
+  },
   plugins: [
     require('@tailwindcss/typography'),
     require('@tailwindcss/forms')({
