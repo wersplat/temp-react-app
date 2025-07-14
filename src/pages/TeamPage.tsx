@@ -31,7 +31,7 @@ const TeamPage = () => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-fade-in">
       {/* Team Header */}
       <div className="bg-white shadow rounded-lg overflow-hidden">
         <div className="px-6 py-8 sm:px-8">
