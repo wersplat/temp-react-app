@@ -130,13 +130,8 @@ const AdminPage = () => {
   };
 
   return (
- codex/update-button-and-card-effects
-    <div className="space-y-8 p-4">
-      <div className="bg-white shadow rounded-lg p-6 hover:shadow-lg transition-shadow">
-=======
     <div className="space-y-8 p-4 animate-fade-in">
-      <div className="bg-white shadow rounded-lg p-6">
- main
+      <div className="bg-white shadow rounded-lg p-6 hover:shadow-lg transition-shadow">
         <h2 className="text-2xl font-bold mb-6 text-gray-800">Create Event</h2>
         <form onSubmit={handleCreateEvent} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
