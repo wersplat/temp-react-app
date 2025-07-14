@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+import FileUpload from '../components/FileUpload';
 import { playersApi, teamsApi, eventsApi, type PlayerPosition, type Event } from '../services/supabase';
+import { supabase } from '../lib/supabase';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -20,7 +22,8 @@ type PlayerFormData = {
 
 type TeamFormData = {
   name: string;
-  logoUrl: string;
+  logoUrl: string | null;
+  logoFile?: File | null;
 };
 
 const positionOptions: PlayerPosition[] = [
@@ -41,8 +44,10 @@ const AdminPage = () => {
   
   const [teamForm, setTeamForm] = useState<TeamFormData>({
     name: '',
-    logoUrl: ''
+    logoUrl: null,
+    logoFile: null
   });
+  const [isUploading, setIsUploading] = useState(false);
   const [eventForm, setEventForm] = useState<EventFormData>({
     name: '',
     date: '',
@@ -81,6 +86,43 @@ const AdminPage = () => {
   // Update team form
   const updateTeamForm = (updates: Partial<TeamFormData>) => {
     setTeamForm(prev => ({ ...prev, ...updates }));
+  };
+
+  const uploadLogo = async (file: File | null): Promise<string | null> => {
+    if (!file) return null;
+    
+    try {
+      setIsUploading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `team-logos/${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('team-logos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (uploadError) {
+        console.error('Error uploading file:', uploadError);
+        toast.error('Failed to upload logo. Please try again.');
+        return null;
+      }
+      
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('team-logos')
+        .getPublicUrl(filePath);
+      
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      toast.error('An error occurred while uploading the logo');
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleAddPlayer = async (e: React.FormEvent) => {
@@ -124,17 +166,47 @@ const AdminPage = () => {
     }
     
     try {
+      setIsUploading(true);
+      
+      // If we have a logo file, upload it first
+      let logoUrl = teamForm.logoUrl;
+      if (teamForm.logoFile) {
+        const uploadedUrl = await uploadLogo(teamForm.logoFile);
+        if (uploadedUrl) {
+          logoUrl = uploadedUrl;
+        } else {
+          // If upload fails, keep the existing URL if there is one
+          logoUrl = teamForm.logoUrl || '';
+        }
+      }
+      
       await teamsApi.create(
         teamForm.name.trim(), 
-        teamForm.logoUrl ? teamForm.logoUrl.trim() : '', 
+        logoUrl || '', // Ensure we pass a string, not null
         currentEventId
       );
+      
       toast.success('Team added successfully');
-      setTeamForm({ name: '', logoUrl: '' });
+      setTeamForm({ 
+        name: '', 
+        logoUrl: null,
+        logoFile: null 
+      });
     } catch (error) {
       console.error('Error adding team:', error);
       toast.error(`Failed to add team: ${(error as Error).message}`);
+    } finally {
+      setIsUploading(false);
     }
+  };
+  
+  const handleLogoChange = async (file: File | null) => {
+    setTeamForm(prev => ({
+      ...prev,
+      logoFile: file,
+      // If we're clearing the file, keep the existing URL if there is one
+      logoUrl: file ? prev.logoUrl : null
+    }));
   };
 
   const handleCreateEvent = async (e: React.FormEvent) => {
@@ -525,24 +597,24 @@ const AdminPage = () => {
                 />
               </div>
               
-              <div>
-                <label htmlFor="teamLogoUrl" className="block text-sm font-medium text-gray-700">
-                  Logo URL (optional)
-                </label>
-                <input
-                  type="url"
-                  id="teamLogoUrl"
-                  value={teamForm.logoUrl}
-                  onChange={(e) => updateTeamForm({ logoUrl: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  placeholder="https://example.com/logo.png"
+              <div className="col-span-2">
+                <FileUpload
+                  onFileSelect={handleLogoChange}
+                  currentUrl={typeof teamForm.logoUrl === 'string' ? teamForm.logoUrl : undefined}
+                  label="Team Logo (optional)"
+                  className="mt-1"
                 />
               </div>
               
               <div className="flex justify-end">
                 <button
                   type="submit"
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  disabled={isUploading}
+                  className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+                    isUploading 
+                      ? 'bg-blue-400 cursor-not-allowed' 
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
                 >
                   Add Team
                 </button>
