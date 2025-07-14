@@ -108,8 +108,12 @@ const TeamCard: React.FC<TeamCardProps> = ({
 
   return (
     <article
+ codex/update-button-and-card-effects
+      className={`bg-white rounded-lg shadow overflow-hidden w-full hover:shadow-lg transition-shadow ${
+=======
       className={`bg-white rounded-lg shadow overflow-hidden w-full ${
  codex/add-fade-in-animation-to-major-components
+ main
         isCurrentTeam ? 'ring-2 ring-brand-blue-500' : ''
       } animate-fade-in`}
  main

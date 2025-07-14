@@ -163,9 +163,9 @@ const PlayerList = (props: PlayerListProps) => {
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {sortedPlayers(players).map((player) => (
-            <tr 
-              key={player.id} 
-              className="hover:bg-gray-50 cursor-pointer"
+            <tr
+              key={player.id}
+              className="hover:bg-gray-50 hover:shadow cursor-pointer transition-shadow"
               onClick={() => onSelectPlayer?.(player)}
               onKeyDown={(e) => {
                 if ((e.key === 'Enter' || e.key === ' ') && onSelectPlayer) {

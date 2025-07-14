@@ -130,8 +130,13 @@ const AdminPage = () => {
   };
 
   return (
+ codex/update-button-and-card-effects
+    <div className="space-y-8 p-4">
+      <div className="bg-white shadow rounded-lg p-6 hover:shadow-lg transition-shadow">
+=======
     <div className="space-y-8 p-4 animate-fade-in">
       <div className="bg-white shadow rounded-lg p-6">
+ main
         <h2 className="text-2xl font-bold mb-6 text-gray-800">Create Event</h2>
         <form onSubmit={handleCreateEvent} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -265,7 +270,7 @@ const AdminPage = () => {
         </form>
       </div>
 
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="bg-white shadow rounded-lg p-6 hover:shadow-lg transition-shadow">
         <h2 className="text-2xl font-bold mb-6 text-gray-800">Add Player</h2>
         <form onSubmit={handleAddPlayer} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -316,7 +321,7 @@ const AdminPage = () => {
         </form>
       </div>
 
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="bg-white shadow rounded-lg p-6 hover:shadow-lg transition-shadow">
         <h2 className="text-2xl font-bold mb-6 text-gray-800">Add Team</h2>
         <form onSubmit={handleAddTeam} className="space-y-4">
           <div>

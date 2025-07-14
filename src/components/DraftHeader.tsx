@@ -29,7 +29,7 @@ export const DraftHeader: DraftHeaderComponent = ({
   onResetDraft,
 }) => {
   return (
-    <div className="bg-white shadow rounded-lg p-6">
+    <div className="bg-white shadow rounded-lg p-6 hover:shadow-lg transition-shadow">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="uppercase tracking-wide text-brand-blue-700 dark:text-brand-blue-200">Draft Board</h1>
