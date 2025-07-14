@@ -152,7 +152,7 @@ const PlayerItem = ({ player, onSelect, disabled }: PlayerItemProps) => (
         className={`inline-flex items-center px-3 py-1.5 border text-xs font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 ${
           disabled
             ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-            : 'bg-indigo-600 text-white border-transparent hover:bg-indigo-700 focus:ring-indigo-500'
+            : 'bg-brand-blue-600 text-white border-transparent hover:bg-brand-blue-700 focus:ring-brand-blue-500'
         }`}
         aria-label={`Draft ${player.name}`}
       >

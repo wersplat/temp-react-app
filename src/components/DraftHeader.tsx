@@ -41,7 +41,7 @@ export const DraftHeader: DraftHeaderComponent = ({
         <div className="mt-4 md:mt-0 flex items-center space-x-4">
           <div className="text-center">
             <div className="text-sm font-medium text-gray-500">Current Pick</div>
-            <div className="text-2xl font-bold text-indigo-600">#{currentPick}</div>
+            <div className="text-2xl font-bold text-brand-blue-600">#{currentPick}</div>
           </div>
           
           <div className="h-12 w-px bg-gray-200"></div>
@@ -56,7 +56,7 @@ export const DraftHeader: DraftHeaderComponent = ({
           <div className="text-center">
             <div className="text-sm font-medium text-gray-500">Time Remaining</div>
             <div className={`text-2xl font-mono ${
-              timeLeft <= 10 ? 'text-red-600' : 'text-gray-900'
+              timeLeft <= 10 ? 'text-brand-red-600' : 'text-gray-900'
             }`}>
               {formatTime(timeLeft)}
             </div>
@@ -72,7 +72,7 @@ export const DraftHeader: DraftHeaderComponent = ({
             {isAdmin && (
               <button
                 onClick={onResetDraft}
-                className="px-4 py-2 bg-red-50 hover:bg-red-100 rounded-md text-sm font-medium text-red-700 transition-colors"
+                className="px-4 py-2 bg-brand-red-50 hover:bg-brand-red-100 rounded-md text-sm font-medium text-brand-red-700 transition-colors"
               >
                 Reset Draft
               </button>
