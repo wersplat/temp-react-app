@@ -91,23 +91,61 @@ const AdminPage = () => {
   const uploadLogo = async (file: File | null): Promise<string | null> => {
     if (!file) return null;
     
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Invalid file type. Please upload a JPG, PNG, GIF, or WebP image.');
+      return null;
+    }
+    
+    // Validate file size (max 2MB)
+    const maxSize = 2 * 1024 * 1024; // 2MB
+    if (file.size > maxSize) {
+      toast.error('File is too large. Maximum size is 2MB.');
+      return null;
+    }
+    
     try {
       setIsUploading(true);
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'png';
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `team-logos/${fileName}`;
       
-      const { error: uploadError } = await supabase.storage
+      // First, check if the bucket exists
+      const { data: bucketList, error: bucketError } = await supabase.storage.listBuckets();
+      if (bucketError) {
+        console.error('Error listing buckets:', bucketError);
+        throw new Error('Failed to access storage. Please try again later.');
+      }
+      
+      const bucketExists = bucketList?.some(bucket => bucket.name === 'team-logos');
+      if (!bucketExists) {
+        console.error('Storage bucket does not exist');
+        throw new Error('Storage configuration error. Please contact support.');
+      }
+      
+      // Upload the file
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('team-logos')
         .upload(filePath, file, {
           cacheControl: '3600',
-          upsert: false
+          upsert: false,
+          contentType: file.type
         });
       
       if (uploadError) {
-        console.error('Error uploading file:', uploadError);
-        toast.error('Failed to upload logo. Please try again.');
-        return null;
+        console.error('Upload error:', uploadError);
+        if (uploadError.message.includes('The resource already exists')) {
+          throw new Error('A file with this name already exists. Please rename your file and try again.');
+        } else if (uploadError.message.includes('not found')) {
+          throw new Error('Storage bucket not found. Please contact support.');
+        } else {
+          throw new Error(`Upload failed: ${uploadError.message}`);
+        }
+      }
+      
+      if (!uploadData) {
+        throw new Error('Upload failed: No data returned from storage');
       }
       
       // Get the public URL
@@ -115,10 +153,15 @@ const AdminPage = () => {
         .from('team-logos')
         .getPublicUrl(filePath);
       
+      if (!publicUrl) {
+        throw new Error('Failed to generate public URL for the uploaded file');
+      }
+      
       return publicUrl;
     } catch (error) {
-      console.error('Error uploading logo:', error);
-      toast.error('An error occurred while uploading the logo');
+      console.error('Logo upload error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during upload';
+      toast.error(`Upload failed: ${errorMessage}`);
       return null;
     } finally {
       setIsUploading(false);
@@ -152,6 +195,13 @@ const AdminPage = () => {
     }
   };
 
+  // Helper function to validate UUID format
+  const isValidUuid = (uuid: string | null): boolean => {
+    if (!uuid) return false;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+  };
+
   const handleAddTeam = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -160,8 +210,15 @@ const AdminPage = () => {
       return;
     }
     
+    // Enhanced validation for event ID
     if (!currentEventId) {
       toast.error('Please select an event first');
+      return;
+    }
+    
+    if (!isValidUuid(currentEventId)) {
+      console.error('Invalid event ID format:', currentEventId);
+      toast.error('Invalid event selected. Please refresh the page and try again.');
       return;
     }
     
@@ -171,30 +228,64 @@ const AdminPage = () => {
       // If we have a logo file, upload it first
       let logoUrl = teamForm.logoUrl;
       if (teamForm.logoFile) {
-        const uploadedUrl = await uploadLogo(teamForm.logoFile);
-        if (uploadedUrl) {
-          logoUrl = uploadedUrl;
-        } else {
-          // If upload fails, keep the existing URL if there is one
-          logoUrl = teamForm.logoUrl || '';
+        try {
+          const uploadedUrl = await uploadLogo(teamForm.logoFile);
+          if (uploadedUrl) {
+            logoUrl = uploadedUrl;
+          } else {
+            toast.error('Failed to upload team logo. Please try again.');
+            return;
+          }
+        } catch (uploadError) {
+          console.error('Logo upload error:', uploadError);
+          toast.error('Failed to upload team logo. The file may be too large or in an unsupported format.');
+          return;
         }
       }
       
-      await teamsApi.create(
-        teamForm.name.trim(), 
-        logoUrl || '', // Ensure we pass a string, not null
-        currentEventId
-      );
-      
-      toast.success('Team added successfully');
-      setTeamForm({ 
-        name: '', 
-        logoUrl: null,
-        logoFile: null 
-      });
+      try {
+        // Double-check event ID is still valid before API call
+        if (!isValidUuid(currentEventId)) {
+          throw new Error('Invalid event ID. Please select a valid event and try again.');
+        }
+        
+        const team = await teamsApi.create(
+          teamForm.name.trim(), 
+          logoUrl || '', // Ensure we pass a string, not null
+          currentEventId
+        );
+        
+        if (team) {
+          toast.success('Team added successfully');
+          setTeamForm({ 
+            name: '', 
+            logoUrl: null,
+            logoFile: null 
+          });
+        } else {
+          throw new Error('Failed to create team. Please try again.');
+        }
+      } catch (apiError) {
+        console.error('Team creation API error:', apiError);
+        let errorMessage = 'Failed to create team. Please try again.';
+        
+        // Handle specific error cases
+        if (apiError instanceof Error) {
+          if (apiError.message.includes('duplicate key value violates unique constraint')) {
+            errorMessage = 'A team with this name already exists for the selected event.';
+          } else if (apiError.message.includes('invalid input syntax for type uuid')) {
+            errorMessage = 'Invalid event selected. Please refresh the page and try again.';
+          } else {
+            errorMessage = apiError.message || errorMessage;
+          }
+        }
+        
+        throw new Error(errorMessage);
+      }
     } catch (error) {
-      console.error('Error adding team:', error);
-      toast.error(`Failed to add team: ${(error as Error).message}`);
+      console.error('Error in handleAddTeam:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      toast.error(`Failed to add team: ${errorMessage}`);
     } finally {
       setIsUploading(false);
     }

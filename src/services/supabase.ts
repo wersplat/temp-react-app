@@ -299,6 +299,13 @@ export const teamsApi = {
       throw new Error('You must be authenticated to create a team');
     }
 
+    // Validate eventId is a valid UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(eventId)) {
+      console.error('Invalid event ID format:', eventId);
+      throw new Error('Invalid event ID format. Please select a valid event.');
+    }
+
     // First, verify the event exists and is active
     const { data: event, error: eventError } = await supabase
       .from('events')
@@ -308,6 +315,9 @@ export const teamsApi = {
 
     if (eventError) {
       console.error('Error fetching event:', eventError);
+      if (eventError.code === 'PGRST116') { // No rows returned
+        throw new Error('The selected event could not be found. It may have been deleted.');
+      }
       throw new Error(`Error verifying event: ${eventError.message}`);
     }
 
