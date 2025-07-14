@@ -6,9 +6,7 @@ import type { Player, PlayerPosition } from '../services/supabase';
 import { getPositionAbbreviation } from '../utils/playerUtils';
 import LoadingSpinner from '../components/LoadingSpinner';
 
-interface PlayersByPosition {
-  [key: string]: Player[];
-}
+// Removed unused interface
 
 const positionOrder: Record<string, number> = {
   'Point Guard': 1,
@@ -24,16 +22,17 @@ const HomePage = () => {
     teams, 
     currentPick, 
     isLoading, 
-    togglePause,
-    resetDraft,
-    isPaused,
-    timeLeft,
-    selectPlayer,
+    togglePause, 
+    resetDraft, 
+    isPaused, 
+    timeLeft, 
+    selectPlayer, 
+    players: availablePlayers,
     playersQuery
   } = useDraft();
 
-  // Memoize the players array to prevent unnecessary re-renders
-  const players = useMemo(() => playersQuery.data || [], [playersQuery.data]);
+  // Use availablePlayers instead of playersQuery.data
+  const players = useMemo(() => availablePlayers || [], [availablePlayers]);
 
   const currentTeam = useMemo(() => {
     if (!teams.length || !currentPick) return undefined;
@@ -61,7 +60,11 @@ const HomePage = () => {
 
   // Memoize the players by position calculation
   const { playersByPosition, sortedPositions } = useMemo(() => {
-    const grouped = players.reduce<PlayersByPosition>((acc, player) => {
+    if (!players?.length) {
+      return { playersByPosition: {}, sortedPositions: [] };
+    }
+
+    const grouped = players.reduce<Record<string, Player[]>>((acc: Record<string, Player[]>, player: Player) => {
       const position = player.position || 'Flex';
       if (!acc[position]) {
         acc[position] = [];
@@ -121,7 +124,7 @@ const HomePage = () => {
                     {position} <span className="text-gray-500">({positionPlayers.length})</span>
                   </h3>
                   <ul className="space-y-2">
-                    {positionPlayers.map((player) => (
+                    {positionPlayers.map((player: Player) => (
                       <PlayerItem 
                         key={player.id}
                         player={player}

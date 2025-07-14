@@ -70,51 +70,31 @@ export const useDraft = (): DraftContextType => {
     enabled: !!currentEventId,
   });
 
-  // Extract data from queries
-  const teams = teamsQuery.data || [];
-  const players = playersQuery.data || [];
-  const draftPicks = draftPicksQuery.data || [];
+  // Extract and memoize data from queries
+  const teams = useMemo(() => teamsQuery.data || [], [teamsQuery.data]);
+  const players = useMemo(() => playersQuery.data || [], [playersQuery.data]);
+  const draftPicks = useMemo(() => draftPicksQuery.data || [], [draftPicksQuery.data]);
 
-
-  // Compute derived data
-  const draftedPlayers = useMemo(() => {
-    if (!draftPicks?.length || !players?.length) return [];
-    
-    return players.filter(player => 
-      draftPicks.some(pick => 
-        (typeof pick.player === 'string' && pick.player === player.name) || 
-        (typeof pick.player === 'object' && pick.player?.id === player.id)
-      )
-    );
-  }, [draftPicks, players]);
 
   // Get undrafted players
   const availablePlayers = useMemo(() => {
     if (!players?.length) return [];
+    if (!draftPicks?.length) return [...players];
     
-    return players.filter(player => 
-      !draftedPlayers.some(dp => dp.id === player.id)
-    );
-  }, [players, draftedPlayers]);
-
-  // Calculate team rosters
-  /*
-  // Team rosters calculation currently unused – can be re-enabled when needed
-  const teamRosters = useMemo(() => {
-    if (!teams?.length || !draftPicks?.length) return {};
+    // Get the IDs of all drafted players, handling both string and object player references
+    const draftedPlayerIds = draftPicks.map(pick => {
+      if (typeof pick.player === 'string') {
+        // If player is a string (name), find the player with that name
+        const player = players.find(p => p.name === pick.player);
+        return player?.id;
+      }
+      // If player is an object, use its ID
+      return pick.player?.id;
+    }).filter((id): id is string => !!id);
     
-    return teams.reduce<Record<string, Player[]>>((acc, team) => {
-      acc[team.id] = draftedPlayers.filter(player => {
-        const pick = draftPicks.find(p => 
-          (typeof p.player === 'string' && p.player === player.name) || 
-          (typeof p.player === 'object' && p.player?.id === player.id)
-        );
-        return pick?.team_id === team.id;
-      });
-      return acc;
-    }, {});
-  }, [teams, draftPicks, draftedPlayers]);
-  */
+    // Filter out any players that have been drafted
+    return players.filter(player => !draftedPlayerIds.includes(player.id));
+  }, [players, draftPicks]);
 
   // Calculate current round based on current pick and number of teams
   const currentRound = useMemo(() => {
@@ -370,21 +350,27 @@ export const useDraft = (): DraftContextType => {
 
   // Return the context value
   return {
+    // State
     teams,
-    players: availablePlayers,
+    players,
+    availablePlayers,
     draftedPlayers: draftedPlayersWithTeam,
     draftPicks,
     currentPick,
     isPaused,
     timeLeft,
     isLoading,
+    
+    // Queries
     teamsQuery,
     playersQuery,
     draftPicksQuery,
+    
+    // Methods
     selectPlayer: (playerId: string) => draftPlayer.mutateAsync(playerId),
     skipPick,
     togglePause: togglePauseDraft,
     resetDraft,
-    setupRealtimeSubscriptions
+    setupRealtimeSubscriptions,
   };
 };

@@ -226,6 +226,26 @@ export function DraftProvider({ children }: { children: ReactNode }) {
     draftPicks,
   ]);
 
+  // Calculate available players (undrafted players)
+  const availablePlayers = useMemo(() => {
+    if (!players?.length) return [];
+    if (!draftPicks?.length) return [...players];
+    
+    // Get the IDs of all drafted players, handling both string and object player references
+    const draftedPlayerIds = draftPicks.map(pick => {
+      if (typeof pick.player === 'string') {
+        // If player is a string (name), find the player with that name
+        const player = players.find(p => p.name === pick.player);
+        return player?.id;
+      }
+      // If player is an object, use its ID
+      return pick.player?.id;
+    }).filter((id): id is string => !!id);
+    
+    // Filter out any players that have been drafted
+    return players.filter(player => !draftedPlayerIds.includes(player.id));
+  }, [players, draftPicks]);
+
   // Return the context value
   const contextValue: DraftContextType = {
     // Query data with proper typing
@@ -236,6 +256,7 @@ export function DraftProvider({ children }: { children: ReactNode }) {
     // Data
     teams: Array.isArray(teams) ? teams : [],
     players: Array.isArray(players) ? players : [],
+    availablePlayers: Array.isArray(availablePlayers) ? availablePlayers : [],
     draftPicks: Array.isArray(draftPicks) ? draftPicks : [],
     draftedPlayers: Array.isArray(draftedPlayers) ? draftedPlayers : [],
     

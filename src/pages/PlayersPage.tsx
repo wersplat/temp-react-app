@@ -1,22 +1,23 @@
 import { useMemo } from 'react';
 import { useDraft } from '../context/DraftContext/useDraft';
 import PlayerList from '../components/PlayerList';
+import type { Player } from '../services/supabase';
 
 export default function PlayersPage() {
-  const { playersQuery } = useDraft();
+  const { availablePlayers, playersQuery } = useDraft();
   
   // Group players by position
   const playersByPosition = useMemo(() => {
-    if (!playersQuery.data) return [];
+    if (!availablePlayers) return [];
     
-    const positions = new Set(playersQuery.data.map(p => p.position));
+    const positions = new Set(availablePlayers.map((p: Player) => p.position));
     return Array.from(positions).sort().map(position => ({
       position,
-      players: playersQuery.data
-        .filter(p => p.position === position)
-        .sort((a, b) => a.name.localeCompare(b.name))
+      players: availablePlayers
+        .filter((p: Player) => p.position === position)
+        .sort((a: Player, b: Player) => a.name.localeCompare(b.name))
     }));
-  }, [playersQuery.data]);
+  }, [availablePlayers]);
 
   if (playersQuery.isLoading) {
     return (
@@ -57,24 +58,30 @@ export default function PlayersPage() {
       </div>
       
       <div className="mt-8 space-y-8">
-        {playersByPosition.map(({ position, players }) => (
-          <div key={position} className="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
-            <div className="px-4 py-5 sm:px-6 bg-gray-50">
-              <h2 className="text-lg font-medium text-gray-900">
-                {position} <span className="text-sm text-gray-500">({players.length})</span>
-              </h2>
+        {playersByPosition.length > 0 ? (
+          playersByPosition.map(({ position, players }) => (
+            <div key={position as string} className="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+              <div className="px-4 py-5 sm:px-6 bg-gray-50">
+                <h2 className="text-lg font-medium text-gray-900">
+                  {position as string} <span className="text-sm text-gray-500">({players.length})</span>
+                </h2>
+              </div>
+              <div className="border-t border-gray-200">
+                <PlayerList 
+                  players={players}
+                  showTeam={true}
+                  showPosition={false}
+                  onSelectPlayer={() => {}}
+                  isDraftInProgress={false}
+                />
+              </div>
             </div>
-            <div className="border-t border-gray-200">
-              <PlayerList 
-                players={players}
-                showTeam={true}
-                showPosition={false}
-                onSelectPlayer={() => {}}
-                isDraftInProgress={false}
-              />
-            </div>
+          ))
+        ) : (
+          <div className="text-center py-12 bg-white rounded-lg shadow">
+            <p className="text-gray-500">No players available for drafting</p>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
