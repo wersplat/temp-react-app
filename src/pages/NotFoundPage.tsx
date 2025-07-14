@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 const NotFoundPage = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 text-center">
+      <div className="max-w-md w-full space-y-8 text-center animate-fade-in">
         <div>
           <h1 className="text-9xl font-bold text-indigo-600">404</h1>
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900">

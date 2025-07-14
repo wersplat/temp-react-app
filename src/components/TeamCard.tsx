@@ -107,10 +107,10 @@ const TeamCard: React.FC<TeamCardProps> = ({
   }, [positionCounts]);
 
   return (
-    <article 
+    <article
       className={`bg-white rounded-lg shadow overflow-hidden w-full ${
         isCurrentTeam ? 'ring-2 ring-indigo-500' : ''
-      }`}
+      } animate-fade-in`}
       aria-labelledby={`team-${team.id}-name`}
       aria-describedby={`team-${team.id}-picks`}
     >

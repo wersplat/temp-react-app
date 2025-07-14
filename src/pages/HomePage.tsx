@@ -73,7 +73,7 @@ const HomePage = () => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-fade-in">
       <DraftBoard 
         currentTeam={currentTeam}
         currentPick={currentPick}

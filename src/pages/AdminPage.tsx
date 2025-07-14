@@ -130,7 +130,7 @@ const AdminPage = () => {
   };
 
   return (
-    <div className="space-y-8 p-4">
+    <div className="space-y-8 p-4 animate-fade-in">
       <div className="bg-white shadow rounded-lg p-6">
         <h2 className="text-2xl font-bold mb-6 text-gray-800">Create Event</h2>
         <form onSubmit={handleCreateEvent} className="space-y-4">
