@@ -125,8 +125,23 @@ export const useDraft = (): DraftContextType => {
   // Calculate which team's turn it is
   const currentTeamTurn = useMemo(() => {
     if (!teams?.length || !currentPick) return null;
+    
+    // Calculate the round (1-based)
+    const round = Math.ceil(currentPick / teams.length);
+    // Calculate the pick within the current round (1-based)
     const pickInRound = ((currentPick - 1) % teams.length) + 1;
-    return teams.find(team => team.draft_order === pickInRound) || null;
+    
+    // For odd rounds: 1, 2, 3, ...
+    // For even rounds: ..., 3, 2, 1
+    const teamIndex = round % 2 === 1 
+      ? pickInRound - 1  // 0-based index for odd rounds
+      : teams.length - pickInRound;  // Reverse order for even rounds
+    
+    // Ensure we have a valid team index
+    if (teamIndex >= 0 && teamIndex < teams.length) {
+      return teams[teamIndex];
+    }
+    return null;
   }, [currentPick, teams]);
 
   // Get drafted players with team info
