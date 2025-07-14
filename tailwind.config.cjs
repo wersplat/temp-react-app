@@ -1,9 +1,33 @@
 /** @type {import('tailwindcss').Config} */
-export default {
+module.exports = {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  // Enable dark mode via class strategy
+  darkMode: 'class',
+  // Configure JIT mode
+  mode: 'jit',
+  // Enable smooth scrolling
+  theme: {
+    extend: {
+      scrollBehavior: {
+        smooth: 'smooth',
+      },
+    },
+  },
+  // Include all variants
+  variants: {
+    extend: {
+      backgroundColor: ['responsive', 'hover', 'focus', 'dark'],
+      textColor: ['responsive', 'hover', 'focus', 'dark'],
+      borderColor: ['responsive', 'hover', 'focus', 'dark'],
+      ringColor: ['responsive', 'hover', 'focus', 'dark'],
+      ringWidth: ['responsive', 'hover', 'focus'],
+      opacity: ['responsive', 'hover', 'focus', 'disabled'],
+      scrollBehavior: ['responsive'],
+    },
+  },
   theme: {
     extend: {
       fontFamily: {

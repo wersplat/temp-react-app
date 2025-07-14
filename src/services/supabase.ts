@@ -214,7 +214,9 @@ interface DraftPickBase {
 export type DraftPick = DraftPickBase;
 
 // Event related types
-export type EventRow = Database['public']['Tables']['events']['Row'];
+export type EventRow = Database['public']['Tables']['events']['Row'] & {
+  is_active: boolean;
+};
 
 export interface Event {
   id: string;
@@ -222,6 +224,7 @@ export interface Event {
   startDate: string | null;
   endDate: string | null;
   isActive: boolean;
+  is_active?: boolean; // Make this optional to match database schema
   createdBy: string | null;
   createdAt: string;
   updatedAt: string | null;
@@ -283,17 +286,89 @@ export const teamsApi = {
       throw new Error('You must be authenticated to create a team');
     }
 
-    const slug = name.toLowerCase().replace(/\s+/g, '-');
+    // First, verify the event exists and is active
+    const { data: event, error: eventError } = await supabase
+      .from('events')
+      .select('id, is_active')
+      .eq('id', eventId)
+      .single();
+
+    if (eventError) {
+      console.error('Error fetching event:', eventError);
+      throw new Error(`Error verifying event: ${eventError.message}`);
+    }
+
+    if (!event) {
+      throw new Error(`Event with ID ${eventId} does not exist`);
+    }
+
+    // Check if the event is explicitly set to inactive
+    const eventData = event as unknown as { id: string; is_active?: boolean };
+    
+    if (eventData.is_active === false) {
+      throw new Error('Cannot create team for an inactive event. Please select an active event.');
+    }
+
+    // Check if a team with this name already exists for this event
+    const { data: existingTeam } = await supabase
+      .from('teams')
+      .select('id')
+      .eq('name', name.trim())
+      .eq('event_id', eventId)
+      .single();
+
+    if (existingTeam) {
+      throw new Error(`A team with the name "${name}" already exists for this event`);
+    }
+
+    // Generate a base slug
+    const baseSlug = name.toLowerCase()
+      .replace(/[^\w\s-]/g, '') // Remove special chars
+      .replace(/\s+/g, '-')      // Replace spaces with hyphens
+      .replace(/-+/g, '-')       // Replace multiple hyphens with single
+      .replace(/^-+|-+$/g, '');  // Remove leading/trailing hyphens
+
+    let uniqueSlug = baseSlug;
+    let attempt = 1;
+    let isUnique = false;
+
+    // Keep trying with incrementing numbers until we find a unique slug
+    while (!isUnique) {
+      const { data: existingSlug, error: slugError } = await supabase
+        .from('teams')
+        .select('id')
+        .eq('slug', uniqueSlug)
+        .eq('event_id', eventId)
+        .maybeSingle();
+
+      if (slugError) {
+        console.error('Error checking for existing slug:', slugError);
+        break;
+      }
+
+      if (!existingSlug) {
+        isUnique = true;
+      } else {
+        uniqueSlug = `${baseSlug}-${++attempt}`;
+      }
+    }
 
     const { data, error } = await supabase
       .from('teams')
-      .insert({ name, slug, logo_url: logoUrl || null, event_id: eventId })
+      .insert({ 
+        name: name.trim(), 
+        slug: uniqueSlug, 
+        logo_url: logoUrl?.trim() || null, 
+        event_id: eventId,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
       .select('*')
       .single();
 
     if (error) {
-      handleApiError(error, 'creating team');
-      return null;
+      console.error('Error creating team:', error);
+      throw new Error(`Failed to create team: ${error.message}`);
     }
     return data as Team;
   },
@@ -972,6 +1047,7 @@ export const eventsApi = {
 
   getAll: async (): Promise<Event[]> => {
     try {
+      // Explicitly type the query result to match the database schema
       const { data, error } = await supabase
         .from('events')
         .select('*')
@@ -983,15 +1059,24 @@ export const eventsApi = {
       }
 
       // Map each database row to our Event interface
-      return (data || []).map((event: any) => ({
+      return (data || []).map((event: {
+        id: string;
+        name: string;
+        date: string | null;
+        is_active?: boolean;
+        created_by: string | null;
+        created_at: string;
+        updated_at: string | null;
+      }) => ({
         id: event.id,
         name: event.name,
         startDate: event.date,  // Map 'date' to 'startDate'
         endDate: null,          // Not in database, set to null
-        isActive: event.is_active,
+        isActive: event.is_active ?? true, // Default to true if not set
+        is_active: event.is_active, // Include both forms for backward compatibility
         createdBy: event.created_by,
         createdAt: event.created_at,
-        updatedAt: event.updated_at
+        updatedAt: event.updated_at || null
       }));
     } catch (error) {
       console.error('Unexpected error in eventsApi.getAll:', error);

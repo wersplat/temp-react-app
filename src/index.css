@@ -1,11 +1,12 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
 
 /* Custom styles */
 @layer base {
   html {
-    @apply h-full scroll-smooth;
+    @apply h-full;
+    scroll-behavior: smooth;
   }
   
   body {

@@ -7,7 +7,7 @@ import { DraftProvider } from './context/DraftContext';
 import { AppProvider } from './context/AppContext';
 import Layout from './components/Layout';
 import LoadingSpinner from './components/LoadingSpinner';
-import './styles/index.css';
+import './index.css';
 
 // Lazy load page components
 const HomePage = lazy(() => import('./pages/HomePage'));
