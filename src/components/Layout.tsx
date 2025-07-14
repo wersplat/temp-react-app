@@ -11,7 +11,6 @@ import {
   ClipboardDocumentListIcon,
   UserCircleIcon as UserIcon,
   ArrowRightOnRectangleIcon,
-  ChartBarIcon,
   MagnifyingGlassIcon as SearchIcon,
   ChevronDownIcon
 } from '@heroicons/react/24/outline';
@@ -21,7 +20,6 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: HomeIcon },
   { name: 'Players', href: '/players', icon: UserGroupIcon },
   { name: 'Draft Board', href: '/draft', icon: ClipboardDocumentListIcon },
-  { name: 'Leaderboard', href: '/leaderboard', icon: ChartBarIcon },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
