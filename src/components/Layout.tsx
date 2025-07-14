@@ -8,6 +8,7 @@ import {
   XMarkIcon,
   HomeIcon,
   UserGroupIcon,
+  UsersIcon,
   ClipboardDocumentListIcon,
   UserCircleIcon as UserIcon,
   ArrowRightOnRectangleIcon,
@@ -18,6 +19,7 @@ import { useAuth } from '../context/AuthContext/useAuth';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: HomeIcon },
+  { name: 'Teams', href: '/teams', icon: UsersIcon },
   { name: 'Players', href: '/players', icon: UserGroupIcon },
   { name: 'Draft Board', href: '/draft', icon: ClipboardDocumentListIcon },
 ];

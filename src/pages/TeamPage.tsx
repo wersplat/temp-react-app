@@ -2,6 +2,16 @@ import { useParams } from 'react-router-dom';
 import { useDraft } from '../context/DraftContext/useDraft';
 import type { Team, DraftPick } from '../services/supabase';
 
+// Helper function to get round number from pick number
+const getRoundNumber = (pickNumber: number, totalTeams: number) => {
+  return Math.ceil(pickNumber / totalTeams);
+};
+
+// Helper function to get pick in round
+const getPickInRound = (pickNumber: number, totalTeams: number) => {
+  return ((pickNumber - 1) % totalTeams) + 1;
+};
+
 const TeamPage = () => {
   const { teamId } = useParams<{ teamId: string }>();
   const { teams, draftPicks } = useDraft();
@@ -9,17 +19,29 @@ const TeamPage = () => {
   // Find the current team
   const team = teams.find((t: Team) => t.id === teamId);
   
-
-  
   // Filter and sort picks for this team
   const teamPicks = draftPicks
-    .filter((pick): pick is DraftPick & { team_id: string; player: string } => 
+    .filter((pick): pick is DraftPick & { team_id: string; player: any } => 
       pick.team_id !== null && pick.team_id === teamId && !!pick.player
     )
     .sort((a, b) => a.pick - b.pick);
 
-  // Calculate total picks
+  // Calculate total picks and rounds
   const totalPicks = teamPicks.length;
+  const totalTeams = teams.length;
+  
+  // Group picks by round
+  const picksByRound = teamPicks.reduce<Record<number, (DraftPick & { player: any })[]>>((acc, pick) => {
+    const round = getRoundNumber(pick.pick, totalTeams);
+    if (!acc[round]) {
+      acc[round] = [];
+    }
+    acc[round].push(pick);
+    return acc;
+  }, {});
+  
+  // Get all round numbers that have picks
+  const rounds = Object.keys(picksByRound).map(Number).sort((a, b) => a - b);
 
   if (!team) {
     return (
@@ -57,79 +79,73 @@ const TeamPage = () => {
                   <p className="text-2xl font-semibold">{totalPicks}</p>
                 </div>
                 <div>
-                <span className="text-sm font-medium text-gray-500">Players</span>
-                <p className="text-2xl font-semibold">{totalPicks}</p>
-              </div>
+                  <span className="text-sm font-medium text-gray-500">Rounds</span>
+                  <p className="text-2xl font-semibold">{rounds.length}</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Team Picks */}
-      <div className="bg-white shadow rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
-        <div className="px-6 py-4 border-b border-blue-200 bg-blue-50">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Draft Picks</h2>
-        </div>
-        {teamPicks.length === 0 ? (
-          <div className="p-6 text-center text-gray-500">
-            No picks made yet.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-blue-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Pick
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Player
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Position
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Team
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {teamPicks.map((pick: DraftPick) => (
-                    <tr key={pick.id} className="hover:bg-gray-50 hover:shadow transition-shadow">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {pick.pick}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {typeof pick.player === 'string' ? pick.player : pick.player?.name || 'Unknown Player'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        N/A
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        N/A
-                      </td>
+      {/* Draft Picks by Round */}
+      <div className="space-y-6">
+        {rounds.length > 0 ? (
+          rounds.map((round) => (
+            <div key={round} className="bg-white shadow rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+              <div className="px-6 py-4 border-b border-blue-200 bg-blue-50">
+                <h2 className="text-lg font-medium text-gray-900">
+                  Round {round} 
+                  <span className="text-sm font-normal text-gray-500 ml-2">
+                    ({picksByRound[round].length} {picksByRound[round].length === 1 ? 'pick' : 'picks'})
+                  </span>
+                </h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Pick
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Overall
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Player
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Position
+                      </th>
                     </tr>
-                ))}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {picksByRound[round].map((pick) => (
+                      <tr key={pick.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {getPickInRound(pick.pick, totalTeams)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          #{pick.pick}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {typeof pick.player === 'string' ? pick.player : pick.player?.name || 'Unknown Player'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {pick.player?.position || 'N/A'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-12 bg-white shadow rounded-lg">
+            <p className="text-gray-500">No draft picks made yet.</p>
           </div>
         )}
-      </div>
-
-      {/* Team Needs Analysis */}
-      <div className="bg-white shadow rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
-        <div className="px-6 py-4 border-b border-blue-200 bg-blue-50">
-          <h3 className="text-lg font-medium text-gray-900">Team Stats</h3>
-        </div>
-        <div className="p-6">
-          <p className="text-sm text-gray-500">
-            {totalPicks > 0 
-              ? `This team has made ${totalPicks} ${totalPicks === 1 ? 'pick' : 'picks'} so far.`
-              : 'This team has not made any picks yet.'
-            }
-          </p>
-        </div>
       </div>
     </div>
   );

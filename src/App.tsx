@@ -14,6 +14,7 @@ const HomePage = lazy(() => import('./pages/HomePage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const TeamPage = lazy(() => import('./pages/TeamPage'));
+const TeamsPage = lazy(() => import('./pages/TeamsPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const PlayersPage = lazy(() => import('./pages/PlayersPage'));
 const DraftBoardPage = lazy(() => import('./pages/DraftBoardPage'));
@@ -41,6 +42,7 @@ function App() {
                     <Route path="/" element={<HomePage />} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/register" element={<RegisterPage />} />
+                    <Route path="/teams" element={<TeamsPage />} />
                     <Route path="/teams/:teamId" element={<TeamPage />} />
                     <Route path="/admin" element={<AdminPage />} />
                     <Route path="/players" element={<PlayersPage />} />
