@@ -35,10 +35,23 @@ const HomePage = () => {
   // Memoize the players array to prevent unnecessary re-renders
   const players = useMemo(() => playersQuery.data || [], [playersQuery.data]);
 
-  const currentTeam = useMemo(
-    () => teams[(currentPick - 1) % teams.length],
-    [teams, currentPick]
-  );
+  const currentTeam = useMemo(() => {
+    if (!teams.length || !currentPick) return undefined;
+    
+    // Sort teams by their draft_order to ensure correct snake draft order
+    const sortedTeams = [...teams].sort((a, b) => (a.draft_order || 0) - (b.draft_order || 0));
+    const pickNumber = typeof currentPick === 'number' ? currentPick : (currentPick as { pick_number?: number }).pick_number || 1;
+    const round = Math.ceil(pickNumber / sortedTeams.length);
+    const pickInRound = ((pickNumber - 1) % sortedTeams.length) + 1;
+    
+    // For odd rounds: 1, 2, 3, ...
+    // For even rounds: ..., 3, 2, 1
+    const teamIndex = round % 2 === 1 
+      ? pickInRound - 1  // 0-based index for odd rounds
+      : sortedTeams.length - pickInRound;  // Reverse order for even rounds
+    
+    return sortedTeams[teamIndex];
+  }, [teams, currentPick]);
   
   const isAdmin = user?.email?.endsWith('@admin.com') ?? false;
 

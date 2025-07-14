@@ -70,32 +70,35 @@ export default function DraftBoardPage() {
   const picksPerTeam = currentEvent?.picksPerTeam || 15;
   const totalPicks = teams.length * picksPerTeam;
 
-  // Calculate current team on the clock
+  // Calculate current team on the clock with snake draft order
   const currentTeamOnClock = React.useMemo(() => {
     if (!currentPick || !teams.length) return null;
     
-    // Handle case where currentPick is just a number (pick index)
-    if (typeof currentPick === 'number') {
-      const teamIndex = (currentPick - 1) % teams.length;
-      const team = teams[teamIndex];
-      if (!team) return null;
-      
-      return {
-        ...team,
-        pickNumber: currentPick,
-        round: Math.ceil(currentPick / teams.length)
-      };
+    const pickNumber = typeof currentPick === 'number' ? currentPick : (currentPick as DraftPick).pick_number || 1;
+    const round = Math.ceil(pickNumber / teams.length);
+    const pickInRound = ((pickNumber - 1) % teams.length) + 1;
+    
+    // For snake draft order, we need to use the team's draft_order property
+    // which should be set according to the snake draft order
+    let teamIndex;
+    if (round % 2 === 1) {
+      // Odd round: 1, 2, 3, ...
+      teamIndex = pickInRound - 1;
+    } else {
+      // Even round: ..., 3, 2, 1
+      teamIndex = teams.length - pickInRound;
     }
     
-    // Handle case where currentPick is a full pick object
-    const pick = currentPick as DraftPick;
-    const currentTeam = teams.find(team => team.id === pick.team_id);
-    if (!currentTeam) return null;
-
+    // Sort teams by their draft_order to ensure correct snake draft order
+    const sortedTeams = [...teams].sort((a, b) => (a.draft_order || 0) - (b.draft_order || 0));
+    const team = sortedTeams[teamIndex];
+    
+    if (!team) return null;
+    
     return {
-      ...currentTeam,
-      pickNumber: pick.pick_number || 0,
-      round: pick.round || 0
+      ...team,
+      pickNumber,
+      round
     };
   }, [currentPick, teams]);
 
@@ -124,11 +127,14 @@ export default function DraftBoardPage() {
   const upcomingPicksByTeam = React.useMemo(() => {
     if (!teams.length || !currentPick) return [];
 
+    // Sort teams by their draft_order to ensure correct snake draft order
+    const sortedTeams = [...teams].sort((a, b) => (a.draft_order || 0) - (b.draft_order || 0));
+    
     // Create a map of team IDs to their picks
     const teamPicksMap = new Map<string, TeamWithPicks>();
     
     // Initialize each team with empty upcoming picks array and 0 picks made
-    teams.forEach(team => {
+    sortedTeams.forEach(team => {
       teamPicksMap.set(team.id, {
         ...team,
         upcomingPicks: [],
@@ -149,23 +155,23 @@ export default function DraftBoardPage() {
     const upcomingPicks: UpcomingPick[] = [];
     const currentPickNumber = typeof currentPick === 'number' 
       ? currentPick 
-      : (currentPick as DraftPick)?.pick_number || 1; // Default to 1 if no current pick
+      : (currentPick as DraftPick)?.pick_number || 1;
     let nextPick = currentPickNumber + 1;
     
     while (upcomingPicks.length < 10 && nextPick <= totalPicks) {
       // Calculate round and pick number within the round
-      const round = Math.ceil(nextPick / teams.length);
-      const pickInRound = nextPick - ((round - 1) * teams.length);
+      const round = Math.ceil(nextPick / sortedTeams.length);
+      const pickInRound = nextPick - ((round - 1) * sortedTeams.length);
       
       // For odd rounds, go in normal order (0, 1, 2, ...)
       // For even rounds, go in reverse order (..., 2, 1, 0)
       const teamIndex = round % 2 === 1 
         ? pickInRound - 1  // 0-based index for odd rounds
-        : teams.length - pickInRound;  // Reverse order for even rounds
+        : sortedTeams.length - pickInRound;  // Reverse order for even rounds
       
-      // Ensure teamIndex is within bounds (should always be, but good to be safe)
-      if (teamIndex >= 0 && teamIndex < teams.length) {
-        const team = teams[teamIndex];
+      // Ensure teamIndex is within bounds
+      if (teamIndex >= 0 && teamIndex < sortedTeams.length) {
+        const team = sortedTeams[teamIndex];
         upcomingPicks.push({
           teamId: team.id,
           teamName: team.name,
