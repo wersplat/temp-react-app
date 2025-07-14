@@ -1,184 +1,313 @@
+import React from 'react';
 import { useDraft } from '../context/DraftContext/useDraft';
-import { formatTime } from '../utils/formatTime';
-import { getPositionAbbreviation } from '../utils/playerUtils';
-import { useMemo } from 'react';
+import { useApp } from '../context/AppContext';
+import { useQuery } from '@tanstack/react-query';
+import { eventsApi } from '../services/events';
+import type { Team, Player, PlayerPosition } from '../services/supabase';
+
+// Define the DraftPick interface based on the database schema
+interface DraftPick {
+  id: number;
+  event_id: string | null;
+  team_id: string | null;
+  player: string | Player;
+  player_id?: string | null;
+  pick: number;
+  pick_number: number;
+  round: number;
+  player_position: PlayerPosition | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  traded: boolean;
+  notes: string | null;
+  team?: Team;
+}
+
+interface UpcomingPick {
+  teamId: string;
+  teamName: string;
+  teamLogo?: string | null;
+  pickNumber: number;
+  round: number;
+}
+
+interface TeamWithPicks extends Team {
+  upcomingPicks: UpcomingPick[];
+  picksMade: number;
+}
+
+// Helper function to get player name from player data that could be string or Player object
+const getPlayerName = (player: string | Player): string => {
+  if (!player) return '';
+  return typeof player === 'string' ? player : player.name;
+};
+
+// Helper function to get player position from player data that could be string or Player object
+const getPlayerPosition = (player: string | Player, position: PlayerPosition | null): string => {
+  if (position) return position;
+  if (typeof player === 'object' && player.position) return player.position;
+  return '';
+};
 
 export default function DraftBoardPage() {
+  const { currentEventId } = useApp();
   const { 
     draftPicks, 
     teams, 
     currentPick, 
-    isPaused, 
-    timeLeft, 
     playersQuery,
-    togglePause,
-    resetDraft
+    isLoading: isDraftLoading 
   } = useDraft();
 
-  // Get the current team on the clock
-  const currentTeam = useMemo(() => {
-    if (!teams.length) return null;
-    return teams[(currentPick - 1) % teams.length];
-  }, [teams, currentPick]);
+  // Fetch current event to get picks per team
+  const { data: currentEvent } = useQuery({
+    queryKey: ['currentEvent', currentEventId],
+    queryFn: () => currentEventId ? eventsApi.getById(currentEventId) : null,
+    enabled: !!currentEventId,
+  });
 
-  // Get the most recent picks (last 5)
-  const recentPicks = useMemo(() => {
-    return [...draftPicks]
-      .sort((a, b) => b.pick - a.pick)
-      .slice(0, 5)
-      .map(pick => ({
+  const picksPerTeam = currentEvent?.picksPerTeam || 15;
+  const totalPicks = teams.length * picksPerTeam;
+
+  // Calculate current team on the clock
+  const currentTeamOnClock = React.useMemo(() => {
+    if (!currentPick || !teams.length) return null;
+    
+    // Handle case where currentPick is just a number (pick index)
+    if (typeof currentPick === 'number') {
+      const teamIndex = (currentPick - 1) % teams.length;
+      const team = teams[teamIndex];
+      if (!team) return null;
+      
+      return {
+        ...team,
+        pickNumber: currentPick,
+        round: Math.ceil(currentPick / teams.length)
+      };
+    }
+    
+    // Handle case where currentPick is a full pick object
+    const pick = currentPick as DraftPick;
+    const currentTeam = teams.find(team => team.id === pick.team_id);
+    if (!currentTeam) return null;
+
+    return {
+      ...currentTeam,
+      pickNumber: pick.pick_number || 0,
+      round: pick.round || 0
+    };
+  }, [currentPick, teams]);
+
+  // Calculate recent picks (last 5)
+  const recentPicks = React.useMemo(() => {
+    if (!draftPicks.length) return [];
+    
+    const picksWithTeams = (draftPicks as DraftPick[])
+      .filter((pick): pick is DraftPick => !!pick.team_id && !!pick.player)
+      .sort((a, b) => (b.pick_number || 0) - (a.pick_number || 0))
+      .slice(0, 5);
+
+    return picksWithTeams.map(pick => {
+      const team = teams.find(t => t.id === pick.team_id);
+      return {
         ...pick,
-        team: teams.find(t => t.id === pick.team_id)
-      }));
+        teamName: team?.name || 'Unknown Team',
+        teamLogo: team?.logo_url,
+        playerName: getPlayerName(pick.player),
+        playerPosition: getPlayerPosition(pick.player, pick.player_position)
+      };
+    });
   }, [draftPicks, teams]);
 
-  // Get upcoming picks (next 5)
-  const upcomingPicks = useMemo(() => {
-    const upcoming = [];
-    const totalTeams = teams.length;
+  // Calculate upcoming picks by team
+  const upcomingPicksByTeam = React.useMemo(() => {
+    if (!teams.length || !currentPick) return [];
+
+    // Create a map of team IDs to their picks
+    const teamPicksMap = new Map<string, TeamWithPicks>();
     
-    if (totalTeams === 0) return [];
+    // Initialize each team with empty upcoming picks array and 0 picks made
+    teams.forEach(team => {
+      teamPicksMap.set(team.id, {
+        ...team,
+        upcomingPicks: [],
+        picksMade: 0
+      });
+    });
+
+    // Count picks made by each team
+    draftPicks.forEach(pick => {
+      if (!pick.team_id) return;
+      const team = teamPicksMap.get(pick.team_id);
+      if (team) {
+        team.picksMade++;
+      }
+    });
+
+    // Find the next 10 upcoming picks
+    const upcomingPicks: UpcomingPick[] = [];
+    const currentPickNumber = typeof currentPick === 'number' 
+      ? currentPick 
+      : (currentPick as DraftPick)?.pick_number || 1; // Default to 1 if no current pick
+    let nextPick = currentPickNumber + 1;
     
-    for (let i = 0; i < 5; i++) {
-      const pickNumber = currentPick + i;
-      const round = Math.ceil(pickNumber / totalTeams);
-      const teamIndex = (pickNumber - 1) % totalTeams;
+    while (upcomingPicks.length < 10 && nextPick <= totalPicks) {
+      // In snake draft, even rounds go in reverse order
+      const round = Math.ceil(nextPick / teams.length);
+      const isReversedRound = round % 2 === 0;
+      
+      const teamIndex = isReversedRound 
+        ? teams.length - 1 - ((nextPick - 1) % teams.length)
+        : (nextPick - 1) % teams.length;
+      
       const team = teams[teamIndex];
       
       if (team) {
-        upcoming.push({
-          pick: pickNumber,
-          round,
-          team
+        upcomingPicks.push({
+          teamId: team.id,
+          teamName: team.name,
+          teamLogo: team.logo_url,
+          pickNumber: nextPick,
+          round
         });
       }
+      
+      nextPick++;
     }
-    
-    return upcoming;
-  }, [currentPick, teams]);
 
-  if (playersQuery.isLoading) {
+    // Group upcoming picks by team
+    upcomingPicks.forEach(pick => {
+      const team = teamPicksMap.get(pick.teamId);
+      if (team) {
+        team.upcomingPicks.push(pick);
+      }
+    });
+
+    // Filter out teams with no upcoming picks and sort by picks made (ascending)
+    return Array.from(teamPicksMap.values())
+      .filter(team => team.upcomingPicks.length > 0)
+      .sort((a, b) => a.picksMade - b.picksMade);
+  }, [teams, currentPick, draftPicks, totalPicks]);
+
+  if (isDraftLoading || playersQuery.isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg font-medium">Loading draft data...</div>
       </div>
     );
   }
 
   return (
-    <div className="px-4 py-6 sm:px-6 lg:px-8">
-      {/* Header */}
-      <div className="sm:flex sm:items-center sm:justify-between mb-8">
-        <div className="sm:flex-auto">
-          <h1 className="text-2xl font-semibold text-gray-900">Draft Board</h1>
-          <p className="mt-2 text-sm text-gray-700">
-            Track the draft in real-time as teams make their selections
-          </p>
-        </div>
-        <div className="mt-4 sm:mt-0 flex space-x-3">
-          <button
-            type="button"
-            onClick={togglePause}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            {isPaused ? 'Resume Draft' : 'Pause Draft'}
-          </button>
-          <button
-            type="button"
-            onClick={resetDraft}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            Reset Draft
-          </button>
-        </div>
+    <div className="container mx-auto px-4 py-8">
+      {/* Current Pick Section */}
+      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 className="text-2xl font-bold mb-4">Current Pick</h2>
+        {currentTeamOnClock ? (
+          <div className="flex items-center space-x-4">
+            <div className="flex-shrink-0">
+              {currentTeamOnClock.logo_url ? (
+                <img 
+                  src={currentTeamOnClock.logo_url} 
+                  alt={`${currentTeamOnClock.name} logo`} 
+                  className="h-16 w-16 rounded-full object-cover"
+                />
+              ) : (
+                <div className="h-16 w-16 rounded-full bg-gray-200 flex items-center justify-center text-xl font-bold">
+                  {currentTeamOnClock.name.substring(0, 2).toUpperCase()}
+                </div>
+              )}
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold">{currentTeamOnClock.name} is on the clock</h3>
+              <p className="text-gray-600">
+                Pick #{currentTeamOnClock.pickNumber} • Round {currentTeamOnClock.round}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <p>No current pick information available</p>
+        )}
       </div>
 
-      {/* Current Pick */}
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
-        <div className="px-4 py-5 sm:px-6 bg-blue-50">
-          <h2 className="text-lg font-medium text-blue-800">
-            {isPaused ? 'Draft Paused' : 'Current Pick'}
-          </h2>
-        </div>
-        <div className="px-4 py-5 sm:p-6">
-          {currentTeam ? (
-            <div className="text-center">
-              <div className="text-5xl font-bold text-gray-900 mb-2">#{currentPick}</div>
-              <div className="text-2xl font-medium text-gray-900">{currentTeam.name}</div>
-              <div className="mt-4 text-sm text-gray-500">
-                {!isPaused && (
-                  <span>Time remaining: {formatTime(timeLeft)}</span>
-                )}
-              </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Recent Picks */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-bold mb-4">Recent Picks</h2>
+          {recentPicks.length > 0 ? (
+            <div className="space-y-4">
+              {recentPicks.map((pick, index) => (
+                <div key={`recent-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                  <div className="flex items-center space-x-3">
+                    <div className="font-medium">{pick.playerName}</div>
+                    <span className="text-sm text-gray-500">{pick.playerPosition}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-500">Pick #{pick.pick_number}</span>
+                    {pick.teamLogo ? (
+                      <img 
+                        src={pick.teamLogo} 
+                        alt="" 
+                        className="h-6 w-6 rounded-full"
+                      />
+                    ) : (
+                      <span className="text-xs font-medium bg-gray-200 rounded-full px-2 py-1">
+                        {pick.teamName.substring(0, 2).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
-            <div className="text-center text-gray-500">No teams available</div>
+            <p>No recent picks to display</p>
           )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-        {/* Recent Picks */}
-        <div>
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Recent Picks</h3>
-          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-            <ul className="divide-y divide-gray-200">
-              {recentPicks.length > 0 ? (
-                recentPicks.map((pick) => (
-                  <li key={pick.id} className="px-4 py-4 sm:px-6 hover:bg-gray-50">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className="text-sm font-medium text-gray-900">
-                          #{pick.pick} - {pick.team?.name}
-                        </div>
-                      </div>
-                      <div className="ml-2 flex-shrink-0 flex">
-                        <div className="text-sm font-medium text-gray-900">
-                          {typeof pick.player === 'string' ? pick.player : pick.player?.name}
-                        </div>
-                        {pick.player && typeof pick.player !== 'string' && pick.player.position && (
-                          <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            {getPositionAbbreviation(pick.player.position)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </li>
-                ))
-              ) : (
-                <li className="px-4 py-4 sm:px-6 text-center text-gray-500">
-                  No picks made yet
-                </li>
-              )}
-            </ul>
-          </div>
         </div>
 
         {/* Upcoming Picks */}
-        <div>
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Upcoming Picks</h3>
-          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-            <ul className="divide-y divide-gray-200">
-              {upcomingPicks.length > 0 ? (
-                upcomingPicks.map((pick, index) => (
-                  <li key={index} className="px-4 py-4 sm:px-6 hover:bg-gray-50">
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm font-medium text-gray-900">
-                        #{pick.pick} - {pick.team.name}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Round {pick.round}
-                      </div>
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-bold mb-4">Upcoming Picks</h2>
+          {upcomingPicksByTeam.length > 0 ? (
+            <div className="space-y-6">
+              {upcomingPicksByTeam.map(team => (
+                <div key={team.id} className="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      {team.logo_url ? (
+                        <img 
+                          src={team.logo_url} 
+                          alt="" 
+                          className="h-8 w-8 rounded-full"
+                        />
+                      ) : (
+                        <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold">
+                          {team.name.substring(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <h3 className="font-medium">{team.name}</h3>
                     </div>
-                  </li>
-                ))
-              ) : (
-                <li className="px-4 py-4 sm:px-6 text-center text-gray-500">
-                  No upcoming picks available
-                </li>
-              )}
-            </ul>
-          </div>
+                    <div className="text-sm text-gray-500">
+                      {team.picksMade}/{picksPerTeam} picks made
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    {team.upcomingPicks.map(pick => (
+                      <div 
+                        key={pick.pickNumber}
+                        className="px-2 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded"
+                        title={`Round ${pick.round}, Pick ${pick.pickNumber}`}
+                      >
+                        #{pick.pickNumber} (R{pick.round})
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p>No upcoming picks to display</p>
+          )}
         </div>
       </div>
     </div>
