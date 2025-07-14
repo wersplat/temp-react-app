@@ -1,8 +1,12 @@
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext/useAuth';
 import { useToast } from '../hooks/useToast';
-import { ArrowLeftOnRectangleIcon } from '@heroicons/react/24/outline';
+import {
+  ArrowLeftOnRectangleIcon,
+  Bars3Icon,
+  XMarkIcon,
+} from '@heroicons/react/24/outline';
 
 type NavItem = {
   name: string;
@@ -25,6 +29,7 @@ const Layout = memo(({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const { toast } = useToast() || fallbackToast;
   const isAdmin = user?.email?.endsWith('@admin.com') ?? false;
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const navItems = useMemo<NavItem[]>(
     () => [
@@ -72,12 +77,25 @@ const Layout = memo(({ children }: { children: React.ReactNode }) => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <header className="bg-white shadow-sm sticky top-0 z-10">
+      <header className="bg-white shadow-sm sticky top-0 z-10 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <Link to="/" className="flex items-center space-x-2">
               <span className="text-xl font-bold text-indigo-600">🏀 Draft App</span>
             </Link>
+
+            <button
+              type="button"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="md:hidden text-gray-700 hover:text-indigo-600 transition-colors"
+              aria-label="Toggle navigation"
+            >
+              {mobileOpen ? (
+                <XMarkIcon className="h-6 w-6" />
+              ) : (
+                <Bars3Icon className="h-6 w-6" />
+              )}
+            </button>
 
             <nav className="hidden md:flex items-center space-x-1">
               {filteredNavItems.map((item) => (
@@ -120,6 +138,25 @@ const Layout = memo(({ children }: { children: React.ReactNode }) => {
                 </Link>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Mobile navigation menu */}
+        <div
+          className={`md:hidden absolute top-full inset-x-0 bg-white shadow-md transform transition-transform duration-300 ${mobileOpen ? 'translate-y-0' : '-translate-y-full'}`}
+        >
+          <div className="px-4 pt-2 pb-4 space-y-1">
+            {filteredNavItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={() => setMobileOpen(false)}
+                className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${item.isActive ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-100'}`}
+                aria-current={item.isActive ? 'page' : undefined}
+              >
+                {item.name}
+              </Link>
+            ))}
           </div>
         </div>
       </header>
