@@ -31,7 +31,7 @@ const TeamPage = () => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-fade-in">
       {/* Team Header */}
       <div className="bg-white shadow rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
         <div className="px-6 py-8 sm:px-8">
@@ -67,8 +67,13 @@ const TeamPage = () => {
       </div>
 
       {/* Team Picks */}
+ codex/update-button-and-card-effects
       <div className="bg-white shadow rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
         <div className="px-6 py-4 border-b border-gray-200">
+=======
+      <div className="bg-white shadow rounded-lg overflow-hidden">
+        <div className="px-6 py-4 border-b border-blue-200 bg-blue-50">
+ main
           <h2 className="text-lg font-medium text-gray-900 mb-4">Draft Picks</h2>
         </div>
         {teamPicks.length === 0 ? (
@@ -78,7 +83,7 @@ const TeamPage = () => {
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-blue-50">
                 <tr>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Pick
@@ -118,8 +123,13 @@ const TeamPage = () => {
       </div>
 
       {/* Team Needs Analysis */}
+ codex/update-button-and-card-effects
       <div className="bg-white shadow rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
         <div className="px-6 py-4 border-b border-gray-200">
+=======
+      <div className="bg-white shadow rounded-lg overflow-hidden">
+        <div className="px-6 py-4 border-b border-blue-200 bg-blue-50">
+ main
           <h3 className="text-lg font-medium text-gray-900">Team Stats</h3>
         </div>
         <div className="p-6">

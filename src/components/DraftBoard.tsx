@@ -27,7 +27,7 @@ const DraftBoard = ({
   const remainingPicks = teams.length * 16 - totalPicks;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-fade-in">
       <DraftHeader
         currentTeam={currentTeam}
         currentPick={currentPick}
