@@ -32,7 +32,7 @@ export const DraftHeader: DraftHeaderComponent = ({
     <div className="bg-white shadow rounded-lg p-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Draft Board</h1>
+          <h1 className="uppercase tracking-wide text-brand-blue-700 dark:text-brand-blue-200">Draft Board</h1>
           <p className="mt-1 text-sm text-gray-500">
             {totalPicks} picks made • {remainingPicks} players remaining
           </p>
