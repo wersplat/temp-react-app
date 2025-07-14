@@ -126,7 +126,7 @@ const PlayerList = (props: PlayerListProps) => {
     >
       <div className="inline-block min-w-full align-middle">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+          <thead className="bg-blue-50">
             <tr>
             <th 
               scope="col" 

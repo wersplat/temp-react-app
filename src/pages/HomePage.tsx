@@ -85,7 +85,7 @@ const HomePage = () => {
       />
       
       <div className="bg-white shadow rounded-lg overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-blue-200 bg-blue-50">
           <h2 className="text-lg font-medium text-gray-900">
             Available Players <span className="text-gray-500">({players.length})</span>
           </h2>

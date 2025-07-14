@@ -11,7 +11,7 @@ type DraftPicksTableComponent = (props: DraftPicksTableProps) => React.JSX.Eleme
 const DraftPicksTable: DraftPicksTableComponent = ({ draftPicks, teams }) => {
   const renderDraftPicks = () => {
     return draftPicks.slice().reverse().map((pick: DraftPick) => (
-      <tr key={pick.id} className="hover:bg-gray-50">
+      <tr key={pick.id} className="odd:bg-blue-50 hover:bg-blue-100">
         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
           {pick.pick}
         </td>
@@ -30,12 +30,12 @@ const DraftPicksTable: DraftPicksTableComponent = ({ draftPicks, teams }) => {
 
   return (
     <div className="bg-white shadow rounded-lg overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-200">
+      <div className="px-6 py-4 border-b border-blue-200 bg-blue-50">
         <h3 className="text-lg font-medium text-gray-900">Recent Picks</h3>
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+          <thead className="bg-blue-50">
             <tr>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Pick
