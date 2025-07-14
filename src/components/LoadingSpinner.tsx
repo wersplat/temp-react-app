@@ -23,7 +23,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 }) => (
   <div className={`flex items-center justify-center ${className}`}>
     <div
-      className={`animate-spin rounded-full border-b-2 border-indigo-500 ${sizeMap[size]}`}
+      className={`animate-spin rounded-full border-b-2 border-brand-blue-500 ${sizeMap[size]}`}
       aria-label="Loading..."
     >
       <span className="sr-only">Loading...</span>

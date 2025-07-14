@@ -81,7 +81,7 @@ const Layout = memo(({ children }: { children: React.ReactNode }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <Link to="/" className="flex items-center space-x-2">
-              <span className="text-xl font-bold text-indigo-600">🏀 Draft App</span>
+              <span className="text-xl font-bold text-brand-blue-600">🏀 Draft App</span>
             </Link>
 
             <button
@@ -104,7 +104,7 @@ const Layout = memo(({ children }: { children: React.ReactNode }) => {
                   to={item.path}
                   className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                     item.isActive
-                      ? 'bg-indigo-50 text-indigo-700'
+                      ? 'bg-brand-blue-50 text-brand-blue-700'
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                   aria-current={item.isActive ? 'page' : undefined}
@@ -122,7 +122,7 @@ const Layout = memo(({ children }: { children: React.ReactNode }) => {
                   </span>
                   <button
                     onClick={handleSignOut}
-                    className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-800 transition-colors"
+                    className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-brand-red-600 hover:text-brand-red-800 transition-colors"
                     aria-label="Sign out"
                   >
                     <ArrowLeftOnRectangleIcon className="h-4 w-4 mr-1" />
@@ -132,7 +132,7 @@ const Layout = memo(({ children }: { children: React.ReactNode }) => {
               ) : (
                 <Link
                   to="/login"
-                  className="px-3 py-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+                  className="px-3 py-1.5 text-sm font-medium text-brand-blue-600 hover:text-brand-blue-800 transition-colors"
                 >
                   Sign In
                 </Link>

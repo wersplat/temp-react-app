@@ -95,7 +95,7 @@ const PlayerList = (props: PlayerListProps) => {
         aria-busy={true}
       >
         <div 
-          className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"
+          className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand-blue-500"
           aria-hidden="true"
         ></div>
         <span className="sr-only">Loading players...</span>
@@ -211,7 +211,7 @@ const PlayerList = (props: PlayerListProps) => {
                 <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <button
                     type="button"
-                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-brand-blue-600 hover:bg-brand-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue-500"
                     onClick={() => onSelectPlayer?.(player)}
                     aria-label={`Select ${player.name}`}
                   >

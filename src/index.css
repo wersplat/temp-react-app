@@ -14,7 +14,7 @@
   }
   
   h1, h2, h3, h4, h5, h6 {
-    @apply font-bold text-gray-900 dark:text-white leading-tight tracking-tight;
+    @apply font-bold text-brand-blue-900 dark:text-brand-blue-200 leading-tight tracking-tight;
   }
   
   h1 { @apply text-4xl; }
@@ -29,15 +29,15 @@
   }
   
   a {
-    @apply text-indigo-600 dark:text-indigo-400 font-medium transition-colors hover:text-indigo-800 dark:hover:text-indigo-300;
+    @apply text-brand-blue-600 dark:text-brand-blue-400 font-medium transition-colors hover:text-brand-blue-800 dark:hover:text-brand-blue-300;
   }
   
   button, .btn {
-    @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-50 disabled:pointer-events-none bg-indigo-600 text-white hover:bg-indigo-700;
+    @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-500 disabled:opacity-50 disabled:pointer-events-none bg-brand-blue-600 text-white hover:bg-brand-blue-700;
   }
   
   input, textarea, select {
-    @apply w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400 dark:focus:border-indigo-500 dark:focus:ring-indigo-500;
+    @apply w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-brand-blue-500 focus:ring-1 focus:ring-brand-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400 dark:focus:border-brand-blue-500 dark:focus:ring-brand-blue-500;
   }
   
   .card {
