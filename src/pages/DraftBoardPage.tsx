@@ -153,17 +153,19 @@ export default function DraftBoardPage() {
     let nextPick = currentPickNumber + 1;
     
     while (upcomingPicks.length < 10 && nextPick <= totalPicks) {
-      // In snake draft, even rounds go in reverse order
+      // Calculate round and pick number within the round
       const round = Math.ceil(nextPick / teams.length);
-      const isReversedRound = round % 2 === 0;
+      const pickInRound = nextPick - ((round - 1) * teams.length);
       
-      const teamIndex = isReversedRound 
-        ? teams.length - 1 - ((nextPick - 1) % teams.length)
-        : (nextPick - 1) % teams.length;
+      // For odd rounds, go in normal order (0, 1, 2, ...)
+      // For even rounds, go in reverse order (..., 2, 1, 0)
+      const teamIndex = round % 2 === 1 
+        ? pickInRound - 1  // 0-based index for odd rounds
+        : teams.length - pickInRound;  // Reverse order for even rounds
       
-      const team = teams[teamIndex];
-      
-      if (team) {
+      // Ensure teamIndex is within bounds (should always be, but good to be safe)
+      if (teamIndex >= 0 && teamIndex < teams.length) {
+        const team = teams[teamIndex];
         upcomingPicks.push({
           teamId: team.id,
           teamName: team.name,
