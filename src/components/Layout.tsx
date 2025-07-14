@@ -1,441 +1,276 @@
-import { memo, useMemo, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext/useAuth';
-import { useToast } from '../hooks/useToast';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
+// App context is not directly used in this component
+import EventSelector from './EventSelector';
 import {
-  ArrowLeftOnRectangleIcon,
   Bars3Icon,
   XMarkIcon,
   HomeIcon,
   UserGroupIcon,
-  ShieldCheckIcon,
-  ChevronDownIcon,
-  UserCircleIcon,
-  Cog6ToothIcon,
-  BellIcon,
-  MagnifyingGlassIcon,
-  MoonIcon,
-  SunIcon,
-  StarIcon,
-  ChatBubbleLeftRightIcon,
+  ClipboardDocumentListIcon,
+  UserCircleIcon as UserIcon,
+  ArrowRightOnRectangleIcon,
+  ChartBarIcon,
+  MagnifyingGlassIcon as SearchIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/outline';
+import { useAuth } from '../context/AuthContext/useAuth';
 
-type NavItem = {
-  name: string;
-  path: string;
-  isActive: boolean;
-  isAdminOnly?: boolean;
-  requiresAuth?: boolean;
-  icon?: React.ReactNode;
-};
+const navigation = [
+  { name: 'Dashboard', href: '/', icon: HomeIcon },
+  { name: 'Players', href: '/players', icon: UserGroupIcon },
+  { name: 'Draft Board', href: '/draft', icon: ClipboardDocumentListIcon },
+  { name: 'Leaderboard', href: '/leaderboard', icon: ChartBarIcon },
+];
 
-// Simple toast function as fallback
-const fallbackToast = {
-  toast: (message: string) => {
-    console.log('Toast:', message);
-  }
-};
-
-// Animation variants for the mobile menu
-const mobileMenuVariants = {
-  hidden: { opacity: 0, x: '100%' },
-  visible: { 
-    opacity: 1, 
-    x: 0,
-    transition: { 
-      type: 'tween' as const,
-      ease: 'easeOut' as const,
-      duration: 0.2
-    }
-  },
-  exit: { 
-    opacity: 0, 
-    x: '100%',
-    transition: { 
-      type: 'tween' as const,
-      ease: 'easeIn' as const,
-      duration: 0.15
-    }
-  }
-};
-
-const Layout = memo(({ children }: { children: React.ReactNode }) => {
+export default function Layout({ children }: { children: React.ReactNode }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const { user, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const { toast } = useToast() || fallbackToast;
-  const isAdmin = user?.email?.endsWith('@admin.com') ?? false;
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
   
-  // Close user menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (userMenuOpen && !target.closest('#user-menu-button') && !target.closest('.user-menu-dropdown')) {
-        setUserMenuOpen(false);
-      }
-    };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [userMenuOpen]);
-  // Track scroll position for header styling
-  const [, setScrolled] = useState(false);
-  
-  // Close mobile menu when route changes
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [location]);
-  
-  // Add scroll listener for header shadow
+  // Handle scroll effect for header
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
+      setIsScrolled(window.scrollY > 0);
     };
     
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navItems = useMemo<NavItem[]>(
-    () => [
-      { 
-        name: 'Home', 
-        path: '/', 
-        isActive: location.pathname === '/',
-        icon: <HomeIcon className="w-5 h-5" />
-      },
-      { 
-        name: 'Team', 
-        path: '/team', 
-        isActive: location.pathname === '/team',
-        icon: <UserGroupIcon className="w-5 h-5" />
-      },
-      {
-        name: 'Messages',
-        path: '/messages',
-        isActive: location.pathname.startsWith('/messages'),
-        icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />
-      },
-      {
-        name: 'Favorites',
-        path: '/favorites',
-        isActive: location.pathname.startsWith('/favorites'),
-        icon: <StarIcon className="w-5 h-5" />
-      },
-      {
-        name: 'Admin',
-        path: '/admin',
-        isActive: location.pathname.startsWith('/admin'),
-        isAdminOnly: true,
-        icon: <ShieldCheckIcon className="w-5 h-5" />
-      },
-    ],
-    [location.pathname]
-  );
-
-  const filteredNavItems = useMemo(
-    () =>
-      navItems.filter(
-        (item) =>
-          !item.requiresAuth ||
-          (item.requiresAuth && user && !(item.isAdminOnly && !isAdmin))
-      ),
-    [navItems, user, isAdmin]
-  );
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      toast('Signed out successfully');
-      navigate('/login');
-    } catch (error) {
-      toast('Error signing out: ' + (error instanceof Error ? error.message : 'Please try again'));
-    }
-  };
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-neutral-50">
-      <header className="bg-white shadow-sm sticky top-0 z-10 border-b border-neutral-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-
-            {/* Desktop Auth Section */}
-            <div className="hidden items-center space-x-3 sm:flex">
-              {user ? (
-                <div className="flex items-center space-x-4">
-                  <div className="relative group">
-                    <button 
-                      className="flex items-center space-x-1 rounded-full p-1 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800/50 dark:hover:text-white"
-                      onClick={() => setMobileOpen(!mobileOpen)}
+    <div className="min-h-screen bg-gray-50">
+      {/* Mobile menu */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'tween', duration: 0.2 }}
+            className="fixed inset-0 z-40 flex lg:hidden"
+          >
+            <div className="relative flex w-full max-w-xs flex-1 flex-col bg-white">
+              <div className="absolute right-0 top-0 -mr-12 pt-2">
+                <button
+                  type="button"
+                  className="ml-1 flex h-10 w-10 items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <span className="sr-only">Close sidebar</span>
+                  <XMarkIcon className="h-6 w-6 text-white" aria-hidden="true" />
+                </button>
+              </div>
+              
+              <div className="h-0 flex-1 overflow-y-auto pt-5 pb-4">
+                <div className="flex flex-shrink-0 items-center px-4">
+                  <h1 className="text-2xl font-bold text-gray-900">Draft App</h1>
+                </div>
+                
+                <nav className="mt-5 space-y-1 px-2">
+                  {navigation.map((item) => (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      className={`group flex items-center rounded-md px-2 py-2 text-base font-medium ${
+                        location.pathname === item.href
+                          ? 'bg-gray-100 text-gray-900'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      }`}
                     >
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400">
-                        {user.email?.charAt(0).toUpperCase() || 'U'}
-                      </div>
-                      <ChevronDownIcon className="h-4 w-4 text-gray-500 transition-transform group-hover:rotate-180" />
-                    </button>
-                    
-                    {/* Dropdown Menu */}
-                    <div className="invisible absolute right-0 mt-2 w-48 origin-top-right scale-95 rounded-lg bg-white py-1 opacity-0 shadow-lg ring-1 ring-black/5 transition-all duration-200 group-hover:visible group-hover:scale-100 group-hover:opacity-100 dark:bg-gray-800 dark:ring-white/10">
-                      <div className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">
-                        <div className="font-medium">{user.email}</div>
-                      </div>
-                      <div className="border-t border-gray-100 dark:border-gray-700">
-                        <button
-                          onClick={handleSignOut}
-                          className="flex w-full items-center px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/50"
-                        >
-                          <ArrowLeftOnRectangleIcon className="mr-2 h-5 w-5 text-gray-500" />
-                          Sign out
-                        </button>
-                      </div>
+                      <item.icon
+                        className={`mr-4 h-6 w-6 flex-shrink-0 ${
+                          location.pathname === item.href
+                            ? 'text-gray-500'
+                            : 'text-gray-400 group-hover:text-gray-500'
+                        }`}
+                        aria-hidden="true"
+                      />
+                      {item.name}
+                    </Link>
+                  ))}
+                </nav>
+              </div>
+              
+              <div className="flex flex-shrink-0 border-t border-gray-200 p-4">
+                <div className="group block w-full flex-shrink-0">
+                  <div className="flex items-center">
+                    <div>
+                      <UserIcon className="h-10 w-10 rounded-full text-gray-400" />
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-base font-medium text-gray-700 group-hover:text-gray-900">
+                        {user?.email || 'Guest'}
+                      </p>
+                      <button
+                        onClick={handleSignOut}
+                        className="text-sm font-medium text-gray-500 group-hover:text-gray-700 flex items-center"
+                      >
+                        Sign out
+                        <ArrowRightOnRectangleIcon className="ml-1 h-4 w-4" />
+                      </button>
                     </div>
                   </div>
                 </div>
-              ) : (
-                <div className="flex space-x-3">
-                  <Link
-                    to="/login"
-                    className="btn btn-ghost"
-                  >
-                    Log in
-                  </Link>
-                  <Link
-                    to="/register"
-                    className="btn btn-primary"
-                  >
-                    Sign up
-                  </Link>
-                </div>
-              )}
+              </div>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-            {/* Mobile menu button */}
-            <div className="flex items-center space-x-2">
-              <button
-                type="button"
-                className="p-2 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-                aria-label="Search"
-              >
-                <MagnifyingGlassIcon className="h-5 w-5" />
-              </button>
-              
-              <button
-                type="button"
-                className="p-2 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-                aria-label="Notifications"
-              >
-                <BellIcon className="h-5 w-5" />
-              </button>
-              
-              <button
-                type="button"
-                className="p-2 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-                onClick={() => document.documentElement.classList.toggle('dark')}
-                aria-label="Toggle dark mode"
-              >
-                <MoonIcon className="h-5 w-5 block dark:hidden" />
-                <SunIcon className="h-5 w-5 hidden dark:block" />
-              </button>
-              
-              <div className="hidden sm:ml-4 sm:flex sm:items-center">
-                <div className="relative">
-                  <button
-                    type="button"
-                    className="flex rounded-full bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-                    id="user-menu-button"
-                    onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  >
-                    <span className="sr-only">Open user menu</span>
-                    <UserCircleIcon className="h-8 w-8 rounded-full bg-gray-200 text-gray-500" />
-                    <span className="ml-2 text-sm font-medium text-gray-700">
-                      {user?.email?.split('@')[0] || 'User'}
-                    </span>
-                  </button>
-                  
-                  {/* Dropdown menu */}
-                  <AnimatePresence>
-                    {userMenuOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        transition={{ duration: 0.2 }}
-                        className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white dark:bg-gray-800 py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
-                        role="menu"
-                        aria-orientation="vertical"
-                        aria-labelledby="user-menu-button"
-                        tabIndex={-1}
-                      >
-                        <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">{user?.email?.split('@')[0] || 'User'}</p>
-                          <p className="text-xs text-gray-500 truncate">{user?.email || 'user@example.com'}</p>
-                        </div>
-                        <Link
-                          to="/profile"
-                          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                          role="menuitem"
-                          tabIndex={-1}
-                        >
-                          <UserCircleIcon className="mr-2 h-5 w-5" />
-                          Your Profile
-                        </Link>
-                        <Link
-                          to="/settings"
-                          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                          role="menuitem"
-                          tabIndex={-1}
-                        >
-                          <Cog6ToothIcon className="mr-2 h-5 w-5" />
-                          Settings
-                        </Link>
-                        <button
-                          onClick={handleSignOut}
-                          className="flex w-full items-center px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-700"
-                          role="menuitem"
-                          tabIndex={-1}
-                        >
-                          <ArrowLeftOnRectangleIcon className="mr-2 h-5 w-5" />
-                          Sign out
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+      {/* Static sidebar for desktop */}
+      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
+        <div className="flex min-h-0 flex-1 flex-col border-r border-gray-200 bg-white">
+          <div className="flex flex-1 flex-col overflow-y-auto pt-5 pb-4">
+            <div className="flex flex-shrink-0 items-center px-4">
+              <h1 className="text-2xl font-bold text-gray-900">Draft App</h1>
+            </div>
+            
+            <nav className="mt-5 flex-1 space-y-1 bg-white px-2">
+              {navigation.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={`group flex items-center rounded-md px-2 py-2 text-sm font-medium ${
+                    location.pathname === item.href
+                      ? 'bg-gray-100 text-gray-900'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }`}
+                >
+                  <item.icon
+                    className={`mr-3 h-6 w-6 flex-shrink-0 ${
+                      location.pathname === item.href
+                        ? 'text-gray-500'
+                        : 'text-gray-400 group-hover:text-gray-500'
+                    }`}
+                    aria-hidden="true"
+                  />
+                  {item.name}
+                </Link>
+              ))}
+            </nav>
+          </div>
+          
+          <div className="flex flex-shrink-0 border-t border-gray-200 p-4">
+            <div className="group block w-full flex-shrink-0">
+              <div className="flex items-center">
+                <div>
+                  <UserIcon className="h-9 w-9 rounded-full text-gray-400" />
                 </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                    {user?.email || 'Guest'}
+                  </p>
+                  <button
+                    onClick={handleSignOut}
+                    className="text-xs font-medium text-gray-500 group-hover:text-gray-700 flex items-center"
+                  >
+                    Sign out
+                    <ArrowRightOnRectangleIcon className="ml-1 h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="flex flex-col lg:pl-64">
+        {/* Top navigation */}
+        <div className={`sticky top-0 z-10 flex h-16 flex-shrink-0 bg-white shadow-sm transition-shadow duration-200 ${
+          isScrolled ? 'shadow' : ''
+        }`}>
+          <button
+            type="button"
+            className="border-r border-gray-200 px-4 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 lg:hidden"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <span className="sr-only">Open sidebar</span>
+            <Bars3Icon className="h-6 w-6" aria-hidden="true" />
+          </button>
+          
+          <div className="flex flex-1 justify-between px-4">
+            <div className="flex flex-1 items-center">
+              <div className="flex w-full max-w-lg lg:max-w-xs">
+                <label htmlFor="search" className="sr-only">
+                  Search
+                </label>
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <SearchIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                </div>
+                <input
+                  id="search"
+                  name="search"
+                  className="block w-full rounded-md border-0 bg-white py-1.5 pl-10 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                  placeholder="Search"
+                  type="search"
+                />
+              </div>
+            </div>
+            
+            <div className="ml-4 flex items-center lg:ml-6">
+              {/* Event Selector */}
+              <div className="mr-4">
+                <EventSelector />
               </div>
               
               <button
                 type="button"
-                onClick={() => setMobileOpen(!mobileOpen)}
-                className="inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 sm:hidden"
+                className="rounded-full bg-white p-1 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                disabled
+                title="Notifications coming soon"
               >
-                <span className="sr-only">Open main menu</span>
-                {mobileOpen ? (
-                  <XMarkIcon className="block h-6 w-6" aria-hidden="true" />
-                ) : (
-                  <Bars3Icon className="block h-6 w-6" aria-hidden="true" />
-                )}
+                <span className="sr-only">View notifications</span>
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
               </button>
+
+              {/* Profile dropdown */}
+              <div className="relative ml-3">
+                <div>
+                  <button
+                    type="button"
+                    className="flex max-w-xs items-center rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                    id="user-menu-button"
+                    aria-expanded="false"
+                    aria-haspopup="true"
+                  >
+                    <span className="sr-only">Open user menu</span>
+                    <UserIcon className="h-8 w-8 rounded-full text-gray-400" />
+                    <ChevronDownIcon className="ml-1 h-4 w-4 text-gray-400" aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Mobile menu */}
-        <AnimatePresence>
-          {mobileOpen && (
-            <motion.div
-              className="fixed inset-0 z-40 h-screen w-full bg-white/95 backdrop-blur-sm dark:bg-gray-900/95 sm:hidden"
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              variants={mobileMenuVariants}
-            >
-              <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-800">
-                <Link
-                  to="/"
-                  className="text-xl font-bold text-gray-900 dark:text-white"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  <span className="bg-gradient-to-r from-primary-600 to-accent-500 bg-clip-text text-transparent">
-                    Fantasy Draft
-                  </span>
-                </Link>
-                <button
-                  type="button"
-                  className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  <span className="sr-only">Close menu</span>
-                  <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-                </button>
-              </div>
-              
-              <div className="px-4 py-3">
-                <nav className="hidden sm:flex space-x-2">
-                  {filteredNavItems.map((item) => (
-                    <Link
-                      key={item.name}
-                      to={item.path}
-                      className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                        item.isActive
-                          ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-100'
-                          : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700/50'
-                      }`}
-                    >
-                      {item.icon}
-                      <span className="ml-2">{item.name}</span>
-                    </Link>
-                  ))}
-                </nav>
-                
-                {user ? (
-                  <div className="mt-6 border-t border-gray-200 pt-4 dark:border-gray-800">
-                    <div className="flex items-center px-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400">
-                        {user.email?.charAt(0).toUpperCase() || 'U'}
-                      </div>
-                      <div className="ml-3">
-                        <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          {user.email}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-3">
-                      <button
-                        onClick={() => {
-                          handleSignOut();
-                          setMobileOpen(false);
-                        }}
-                        className="flex w-full items-center rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                      >
-                        <ArrowLeftOnRectangleIcon className="mr-2 h-5 w-5" />
-                        Sign out
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mt-6 space-y-3 border-t border-gray-200 pt-4 dark:border-gray-800">
-                    <Link
-                      to="/login"
-                      className="block w-full rounded-lg bg-gray-100 px-4 py-2.5 text-center text-sm font-medium text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700"
-                      onClick={() => setMobileOpen(false)}
-                    >
-                      Log in
-                    </Link>
-                    <Link
-                      to="/register"
-                      className="block w-full rounded-lg bg-primary-600 px-4 py-2.5 text-center text-sm font-medium text-white hover:bg-primary-700"
-                      onClick={() => setMobileOpen(false)}
-                    >
-                      Sign up
-                    </Link>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </header>
-
-      <main className="flex-1">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {children}
-        </div>
-      </main>
-
-      <footer className="bg-white border-t border-neutral-200 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <p className="text-center text-sm text-neutral-500">
-            &copy; {new Date().getFullYear()} Draft App. All rights reserved.
-          </p>
-        </div>
-      </footer>
+        {/* Main content area */}
+        <main className="flex-1">
+          <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
-});
-
-Layout.displayName = 'Layout';
-
-export default Layout;
+}

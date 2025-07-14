@@ -22,15 +22,18 @@ const HomePage = () => {
   const { user } = useAuth();
   const { 
     teams, 
-    players,
     currentPick, 
     isLoading, 
     togglePause,
     resetDraft,
     isPaused,
     timeLeft,
-    selectPlayer
+    selectPlayer,
+    playersQuery
   } = useDraft();
+
+  // Memoize the players array to prevent unnecessary re-renders
+  const players = useMemo(() => playersQuery.data || [], [playersQuery.data]);
 
   const currentTeam = useMemo(
     () => teams[(currentPick - 1) % teams.length],
@@ -64,7 +67,7 @@ const HomePage = () => {
     };
   }, [players]);
 
-  if (isLoading) {
+  if (isLoading || playersQuery.isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
         <LoadingSpinner size="lg" />
