@@ -36,23 +36,24 @@ const AdminPage = () => {
     }
     
     if (!playerPosition) {
-      toast.error('Player position is required');
+      toast.error('Please select a valid position');
       return;
     }
     
     try {
       await playersApi.create(
         playerName.trim(),
-        playerPosition,
+        playerPosition as PlayerPosition,
         currentEventId
       );
       
-      toast.success('Player added successfully');
+      toast.success(`${playerName} added successfully`);
       
       // Reset form
       setPlayerName('');
       setPlayerPosition('');
     } catch (err) {
+      console.error('Error adding player:', err);
       toast.error(`Failed to add player: ${(err as Error).message}`);
     }
   };
@@ -60,13 +61,25 @@ const AdminPage = () => {
   const handleAddTeam = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentEventId) return toast.error('No event selected');
+    
+    if (!teamName.trim()) {
+      toast.error('Team name is required');
+      return;
+    }
+    
     try {
-      await teamsApi.create(teamName, currentEventId, teamLogoUrl || null);
-      toast.success('Team added');
+      await teamsApi.create(
+        teamName.trim(), 
+        currentEventId, 
+        teamLogoUrl.trim() || null
+      );
+      
+      toast.success(`Team "${teamName}" added successfully`);
       setTeamName('');
       setTeamLogoUrl('');
     } catch (err) {
-      toast.error((err as Error).message);
+      console.error('Error adding team:', err);
+      toast.error(`Failed to add team: ${(err as Error).message}`);
     }
   };
 
@@ -304,25 +317,45 @@ const AdminPage = () => {
       </div>
 
       <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-xl font-bold mb-4">Add Team</h2>
+        <h2 className="text-2xl font-bold mb-6 text-gray-800">Add Team</h2>
         <form onSubmit={handleAddTeam} className="space-y-4">
-          <input
-            type="text"
-            placeholder="Team Name"
-            value={teamName}
-            onChange={(e) => setTeamName(e.target.value)}
-            className="w-full border rounded px-3 py-2"
-          />
-          <input
-            type="text"
-            placeholder="Logo URL (optional)"
-            value={teamLogoUrl}
-            onChange={(e) => setTeamLogoUrl(e.target.value)}
-            className="w-full border rounded px-3 py-2"
-          />
-          <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded">
-            Add Team
-          </button>
+          <div>
+            <label htmlFor="teamName" className="block text-sm font-medium text-gray-700 mb-1">
+              Team Name *
+            </label>
+            <input
+              type="text"
+              id="teamName"
+              value={teamName}
+              onChange={(e) => setTeamName(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="e.g. Los Angeles Lakers"
+              required
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="teamLogoUrl" className="block text-sm font-medium text-gray-700 mb-1">
+              Logo URL (Optional)
+            </label>
+            <input
+              type="url"
+              id="teamLogoUrl"
+              value={teamLogoUrl}
+              onChange={(e) => setTeamLogoUrl(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="https://example.com/logo.png"
+            />
+          </div>
+          
+          <div className="pt-2">
+            <button
+              type="submit"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Add Team
+            </button>
+          </div>
         </form>
       </div>
     </div>
