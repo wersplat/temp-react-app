@@ -84,7 +84,7 @@ const HomePage = () => {
         isAdmin={isAdmin}
       />
       
-      <div className="bg-white shadow rounded-lg overflow-hidden">
+      <div className="bg-white shadow rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-medium text-gray-900">
             Available Players <span className="text-gray-500">({players.length})</span>
@@ -149,7 +149,7 @@ const PlayerItem = ({ player, onSelect, disabled }: PlayerItemProps) => (
       <button
         onClick={() => onSelect(player)}
         disabled={disabled}
-        className={`inline-flex items-center px-3 py-1.5 border text-xs font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+        className={`inline-flex items-center px-3 py-1.5 border text-xs font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 transition-transform hover:scale-105 active:scale-95 ${
           disabled
             ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
             : 'bg-brand-blue-600 text-white border-transparent hover:bg-brand-blue-700 focus:ring-brand-blue-500'

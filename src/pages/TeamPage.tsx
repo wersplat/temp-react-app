@@ -33,7 +33,7 @@ const TeamPage = () => {
   return (
     <div className="space-y-8">
       {/* Team Header */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
+      <div className="bg-white shadow rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
         <div className="px-6 py-8 sm:px-8">
           <div className="flex items-center space-x-6">
             <div className="flex-shrink-0">
@@ -67,7 +67,7 @@ const TeamPage = () => {
       </div>
 
       {/* Team Picks */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
+      <div className="bg-white shadow rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-medium text-gray-900 mb-4">Draft Picks</h2>
         </div>
@@ -96,7 +96,7 @@ const TeamPage = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {teamPicks.map((pick: DraftPick) => (
-                    <tr key={pick.id} className="hover:bg-gray-50">
+                    <tr key={pick.id} className="hover:bg-gray-50 hover:shadow transition-shadow">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {pick.pick}
                       </td>
@@ -118,7 +118,7 @@ const TeamPage = () => {
       </div>
 
       {/* Team Needs Analysis */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
+      <div className="bg-white shadow rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-medium text-gray-900">Team Stats</h3>
         </div>
