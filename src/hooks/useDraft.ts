@@ -1,9 +1,7 @@
 import { useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-import type { Team, Player, DraftPick, PlayerPosition, Database } from '../services/supabase';
-
-type DbDraftPick = Database['public']['Tables']['draft_picks']['Row'];
+import type { Team, Player, DraftPick, PlayerPosition } from '../services/supabase';
 import { useApp } from '../context/AppContext';
 
 // Define the draft pick input type for the upsert operation
@@ -113,11 +111,28 @@ export function useDraft(): UseDraftReturn {
         throw error;
       }
       
+      // Define the database row type for draft picks
+      type DbDraftPickRow = {
+        id: number;
+        player: string;
+        pick: number;
+        round: number;
+        team_id: string | null;
+        event_id: string | null;
+        player_position: PlayerPosition | null;
+        created_by: string | null;
+        created_at: string;
+        updated_at?: string;
+        notes?: string | null;
+        traded?: boolean;
+        pick_number?: number;
+      };
+
       // Transform the data to match the DraftPick type
-      return (data || []).map((pick) => {
+      return (data || []).map((pick: DbDraftPickRow) => {
         // Calculate pick_number if not present (for backward compatibility)
         const pickNumber = 'pick_number' in pick 
-          ? (pick as any).pick_number 
+          ? (pick as { pick_number?: number }).pick_number ?? 0
           : (pick.round - 1) * 12 + pick.pick; // Assuming 12 teams per round
         
         // Transform to DraftPick type with all required fields
@@ -132,7 +147,7 @@ export function useDraft(): UseDraftReturn {
           player_position: pick.player_position as PlayerPosition | null,
           created_by: pick.created_by || null,
           created_at: pick.created_at || new Date().toISOString(),
-          updated_at: pick.updated_at || new Date().toISOString(),
+          updated_at: ('updated_at' in pick ? pick.updated_at : new Date().toISOString()) as string,
           notes: pick.notes || null,
           traded: pick.traded ?? false
         };
