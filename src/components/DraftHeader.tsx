@@ -29,34 +29,34 @@ export const DraftHeader: DraftHeaderComponent = ({
   onResetDraft,
 }) => {
   return (
-    <div className="bg-white shadow rounded-lg p-6 hover:shadow-lg transition-shadow">
+    <div className="bg-white shadow rounded-lg p-6 hover:shadow-lg transition-all duration-200 border border-neutral-100">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="uppercase tracking-wide text-brand-blue-700 dark:text-brand-blue-200">Draft Board</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="uppercase tracking-wide text-primary-600 font-bold text-sm">Draft Board</h1>
+          <p className="mt-1 text-sm text-neutral-500">
             {totalPicks} picks made • {remainingPicks} players remaining
           </p>
         </div>
         
         <div className="mt-4 md:mt-0 flex items-center space-x-4">
           <div className="text-center">
-            <div className="text-sm font-medium text-gray-500">Current Pick</div>
-            <div className="text-2xl font-bold text-brand-blue-600">#{currentPick}</div>
+            <div className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Current Pick</div>
+            <div className="text-2xl font-bold text-primary-700">#{currentPick}</div>
           </div>
           
-          <div className="h-12 w-px bg-gray-200"></div>
+          <div className="h-12 w-px bg-neutral-200"></div>
           
           <div className="text-center">
-            <div className="text-sm font-medium text-gray-500">On the Clock</div>
-            <div className="text-xl font-semibold">{currentTeam?.name || 'Loading...'}</div>
+            <div className="text-xs font-medium text-neutral-500 uppercase tracking-wider">On the Clock</div>
+            <div className="text-xl font-semibold text-neutral-800">{currentTeam?.name || 'Loading...'}</div>
           </div>
           
-          <div className="h-12 w-px bg-gray-200"></div>
+          <div className="h-12 w-px bg-neutral-200"></div>
           
           <div className="text-center">
-            <div className="text-sm font-medium text-gray-500">Time Remaining</div>
-            <div className={`text-2xl font-mono ${
-              timeLeft <= 10 ? 'text-brand-red-600' : 'text-gray-900'
+            <div className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Time Remaining</div>
+            <div className={`text-2xl font-mono font-bold ${
+              timeLeft <= 10 ? 'text-accent-600' : 'text-primary-600'
             }`}>
               {formatTime(timeLeft)}
             </div>
@@ -65,14 +65,14 @@ export const DraftHeader: DraftHeaderComponent = ({
           <div className="flex space-x-2">
             <button
               onClick={onTogglePause}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium text-gray-700 transition-colors"
+              className="px-4 py-2 bg-neutral-100 hover:bg-neutral-200 rounded-md text-sm font-medium text-neutral-700 transition-colors border border-neutral-200 hover:border-neutral-300"
             >
               {isPaused ? 'Resume' : 'Pause'}
             </button>
             {isAdmin && (
               <button
                 onClick={onResetDraft}
-                className="px-4 py-2 bg-brand-red-50 hover:bg-brand-red-100 rounded-md text-sm font-medium text-brand-red-700 transition-colors"
+                className="px-4 py-2 bg-accent-50 hover:bg-accent-100 rounded-md text-sm font-medium text-accent-700 transition-colors border border-accent-100 hover:border-accent-200"
               >
                 Reset Draft
               </button>

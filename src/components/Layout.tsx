@@ -76,18 +76,18 @@ const Layout = memo(({ children }: { children: React.ReactNode }) => {
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <header className="bg-white shadow-sm sticky top-0 z-10 relative">
+    <div className="min-h-screen flex flex-col bg-neutral-50">
+      <header className="bg-white shadow-sm sticky top-0 z-10 relative border-b border-neutral-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <Link to="/" className="flex items-center space-x-2">
-              <span className="text-xl font-bold text-brand-blue-600">🏀 Draft App</span>
+              <span className="text-xl font-bold text-primary-600">🏀 Draft App</span>
             </Link>
 
             <button
               type="button"
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden text-gray-700 hover:text-indigo-600 transition-colors"
+              className="md:hidden text-neutral-700 hover:text-primary-500 transition-colors"
               aria-label="Toggle navigation"
             >
               {mobileOpen ? (
@@ -104,8 +104,8 @@ const Layout = memo(({ children }: { children: React.ReactNode }) => {
                   to={item.path}
                   className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                     item.isActive
-                      ? 'bg-brand-blue-50 text-brand-blue-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 text-primary-700 font-semibold'
+                      : 'text-neutral-700 hover:bg-neutral-100 hover:text-primary-600'
                   }`}
                   aria-current={item.isActive ? 'page' : undefined}
                 >
@@ -117,22 +117,22 @@ const Layout = memo(({ children }: { children: React.ReactNode }) => {
             <div className="flex items-center space-x-4">
               {user ? (
                 <div className="flex items-center space-x-4">
-                  <span className="hidden md:inline text-sm font-medium text-gray-700">
+                  <span className="hidden md:inline text-sm font-medium text-neutral-700">
                     {user.email}
                   </span>
                   <button
                     onClick={handleSignOut}
-                    className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-brand-red-600 hover:text-brand-red-800 transition-colors"
+                    className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-accent-600 hover:text-accent-700 transition-colors border border-accent-100 hover:bg-accent-50 rounded-md"
                     aria-label="Sign out"
                   >
-                    <ArrowLeftOnRectangleIcon className="h-4 w-4 mr-1" />
+                    <ArrowLeftOnRectangleIcon className="h-4 w-4 mr-1.5" />
                     <span>Sign Out</span>
                   </button>
                 </div>
               ) : (
                 <Link
                   to="/login"
-                  className="px-3 py-1.5 text-sm font-medium text-brand-blue-600 hover:text-brand-blue-800 transition-colors"
+                  className="px-3 py-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors border border-primary-100 hover:bg-primary-50 rounded-md"
                 >
                   Sign In
                 </Link>
@@ -151,7 +151,11 @@ const Layout = memo(({ children }: { children: React.ReactNode }) => {
                 key={item.path}
                 to={item.path}
                 onClick={() => setMobileOpen(false)}
-                className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${item.isActive ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-100'}`}
+                className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                  item.isActive 
+                    ? 'bg-primary-50 text-primary-700 font-semibold' 
+                    : 'text-neutral-700 hover:bg-neutral-100 hover:text-primary-600'
+                }`}
                 aria-current={item.isActive ? 'page' : undefined}
               >
                 {item.name}
@@ -167,9 +171,9 @@ const Layout = memo(({ children }: { children: React.ReactNode }) => {
         </div>
       </main>
 
-      <footer className="bg-white border-t border-gray-200">
+      <footer className="bg-white border-t border-neutral-200 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <p className="text-center text-sm text-gray-500">
+          <p className="text-center text-sm text-neutral-500">
             &copy; {new Date().getFullYear()} Draft App. All rights reserved.
           </p>
         </div>

@@ -82,25 +82,19 @@ export type Database = {
           name: string;
           logo_url: string | null;
           created_at: string;
-          updated_at: string;
+          updated_at: string | null;
           event_id: string | null;
           slug?: string;
         };
       };
       events: {
-        Row: {
-          id: string;
-          name: string;
-          date: string | null;
-          draft_type: string;
-          num_teams: number;
-          pick_time_seconds: number | null;
-          picks_per_team: number;
-          prize_pool: number | null;
-          is_active: boolean;
-          created_by: string | null;
-          created_at: string;
-          updated_at: string | null;
+        Row: Omit<DbEvent, 'created_by'> & { created_by: string | null };
+        Insert: Omit<DbEvent, 'id' | 'created_at' | 'updated_at'> & {
+          created_at?: string;
+          updated_at?: string | null;
+        };
+        Update: Partial<Omit<DbEvent, 'id' | 'created_at'>> & {
+          updated_at?: string | null;
         };
       };
     };
@@ -214,21 +208,40 @@ interface DraftPickBase {
 export type DraftPick = DraftPickBase;
 
 // Event related types
-export type EventRow = Database['public']['Tables']['events']['Row'] & {
-  is_active: boolean;
-};
-
 export interface Event {
   id: string;
   name: string;
   startDate: string | null;
   endDate: string | null;
   isActive: boolean;
-  is_active?: boolean; // Make this optional to match database schema
+  is_active?: boolean; // For backward compatibility
   createdBy: string | null;
   createdAt: string;
   updatedAt: string | null;
+  draftType: string;
+  numTeams: number;
+  pickTimeSeconds: number | null;
+  picksPerTeam: number;
+  prizePool: number | null;
+  prizeBreakdown?: any; // Optional since it's not always needed
 }
+
+// Database representation of an event
+export type DbEvent = {
+  id: string;
+  name: string;
+  date: string | null;
+  draft_type: string;
+  num_teams: number;
+  pick_time_seconds: number | null;
+  picks_per_team: number;
+  prize_breakdown: any;
+  prize_pool: number | null;
+  is_active: boolean;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string | null;
+};
 
 // Helper function to handle API errors
 const handleApiError = (error: unknown, context: string): never => {
@@ -996,7 +1009,8 @@ export const eventsApi = {
     numTeams: number = 12,
     pickTimeSeconds: number | null = 60,
     picksPerTeam: number = 15,
-    prizePool: number | null = null
+    prizePool: number | null = null,
+    createdBy: string | null = null
   ): Promise<Event | null> => {
     try {
       const isAuthenticated = await ensureAuth();
@@ -1012,32 +1026,41 @@ export const eventsApi = {
         num_teams: numTeams,
         pick_time_seconds: pickTimeSeconds,
         picks_per_team: picksPerTeam,
+        prize_breakdown: null,
         prize_pool: prizePool,
-        is_active: isActive
+        is_active: isActive,
+        created_by: createdBy
       };
 
       const { data, error } = await supabase
         .from('events')
-        .insert([insertData])
+        .insert(insertData)
         .select('*')
         .single();
 
       if (error) {
         console.error('Error creating event:', error);
-        throw error;
+        return null;
       }
 
       // Map from database schema to Event interface
-      const eventData = data as any; // We'll map the fields manually
+      const eventData = data as any; // We need to use any here due to type differences
       return {
         id: eventData.id,
         name: eventData.name,
-        startDate: eventData.date,  // Map 'date' to 'startDate'
-        endDate: null,              // Not in database, set to null
-        isActive: eventData.is_active,
-        createdBy: eventData.created_by,
+        startDate: eventData.date,
+        endDate: null,
+        isActive: eventData.is_active ?? true,
+        is_active: eventData.is_active ?? true,
+        createdBy: eventData.created_by ?? null,
         createdAt: eventData.created_at,
-        updatedAt: eventData.updated_at
+        updatedAt: eventData.updated_at ?? null,
+        draftType: eventData.draft_type || 'snake',
+        numTeams: eventData.num_teams || 0,
+        pickTimeSeconds: eventData.pick_time_seconds || 60,
+        picksPerTeam: eventData.picks_per_team || 0,
+        prizePool: eventData.prize_pool || null,
+        prizeBreakdown: eventData.prize_breakdown
       };
     } catch (error) {
       console.error('Unexpected error in eventsApi.create:', error);
@@ -1047,40 +1070,54 @@ export const eventsApi = {
 
   getAll: async (): Promise<Event[]> => {
     try {
-      // Explicitly type the query result to match the database schema
       const { data, error } = await supabase
         .from('events')
         .select('*')
-        .order('date', { ascending: false });
+        .order('created_at', { ascending: false });
       
       if (error) {
         console.error('Error fetching events:', error);
         return [];
       }
 
-      // Map each database row to our Event interface
-      return (data || []).map((event: {
+      // Use type assertion to handle the database response
+      const events = (data || []) as Array<{
         id: string;
         name: string;
         date: string | null;
-        is_active?: boolean;
+        draft_type: string;
+        num_teams: number;
+        pick_time_seconds: number | null;
+        picks_per_team: number;
+        prize_breakdown: any;
+        prize_pool: number | null;
+        is_active: boolean;
         created_by: string | null;
         created_at: string;
         updated_at: string | null;
-      }) => ({
+      }>;
+
+      return events.map(event => ({
         id: event.id,
         name: event.name,
-        startDate: event.date,  // Map 'date' to 'startDate'
-        endDate: null,          // Not in database, set to null
-        isActive: event.is_active ?? true, // Default to true if not set
-        is_active: event.is_active, // Include both forms for backward compatibility
+        startDate: event.date,
+        endDate: null,
+        isActive: event.is_active ?? true,
+        is_active: event.is_active ?? true,
         createdBy: event.created_by,
         createdAt: event.created_at,
-        updatedAt: event.updated_at || null
+        updatedAt: event.updated_at,
+        draftType: event.draft_type || 'snake',
+        numTeams: event.num_teams || 0,
+        pickTimeSeconds: event.pick_time_seconds || 60,
+        picksPerTeam: event.picks_per_team || 0,
+        prizePool: event.prize_pool || null,
+        prizeBreakdown: event.prize_breakdown
       }));
     } catch (error) {
       console.error('Unexpected error in eventsApi.getAll:', error);
       return [];
     }
-  }
+  },
+  // ... other event API methods
 };
