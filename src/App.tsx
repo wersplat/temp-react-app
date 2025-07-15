@@ -18,7 +18,6 @@ const TeamsPage = lazy(() => import('./pages/TeamsPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const PlayersPage = lazy(() => import('./pages/PlayersPage'));
 const DraftBoardPage = lazy(() => import('./pages/DraftBoardPage'));
-const DraftAdminPage = lazy(() => import('./pages/DraftAdminPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 // Loading component for Suspense fallback
@@ -48,7 +47,6 @@ function App() {
                     <Route path="/admin" element={<AdminPage />} />
                     <Route path="/players" element={<PlayersPage />} />
                     <Route path="/draft" element={<DraftBoardPage />} />
-                    <Route path="/draft-admin" element={<DraftAdminPage />} />
                     <Route path="*" element={<NotFoundPage />} />
                   </Routes>
                 </Suspense>
