@@ -16,6 +16,7 @@ const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const TeamPage = lazy(() => import('./pages/TeamPage'));
 const TeamsPage = lazy(() => import('./pages/TeamsPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
+const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'));
 const PlayersPage = lazy(() => import('./pages/PlayersPage'));
 const DraftBoardPage = lazy(() => import('./pages/DraftBoardPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
@@ -44,7 +45,7 @@ function App() {
                     <Route path="/register" element={<RegisterPage />} />
                     <Route path="/teams" element={<TeamsPage />} />
                     <Route path="/teams/:teamId" element={<TeamPage />} />
-                    <Route path="/admin" element={<AdminPage />} />
+                    <Route path="/admin" element={<AdminDashboardPage />} />
                     <Route path="/players" element={<PlayersPage />} />
                     <Route path="/draft" element={<DraftBoardPage />} />
                     <Route path="*" element={<NotFoundPage />} />
