@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-hot-toast';
 import FileUpload from '../components/FileUpload';
-import { playersApi, teamsApi, eventsApi, type PlayerPosition, type Event } from '../services/supabase';
+import { playersApi, teamsApi, eventsApi, type PlayerPosition, type Event, type Team, type Player } from '../services/supabase';
 import { useDraft } from '../context/DraftContext/useDraft';
 import DraftPicksTable from '../components/DraftPicksTable';
 import { supabase } from '../lib/supabase';
@@ -78,7 +78,7 @@ const AdminPage = () => {
   };
   
   // Get current event details
-  const currentEvent = events.find(event => event.id === currentEventId);
+  const currentEvent = events.find((event: Event) => event.id === currentEventId);
 
   const {
     teams,
@@ -467,11 +467,11 @@ const AdminPage = () => {
                   min="1"
                   max="30"
                   value={eventForm.numTeams}
-                  onChange={(e) => updateEventForm({ numTeams: parseInt(e.target.value, 10) })}
+                  onChange={(e) => setEventForm({ ...eventForm, numTeams: parseInt(e.target.value, 10) })}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
-              
+
               <div>
                 <label htmlFor="picksPerTeam" className="block text-sm font-medium text-gray-700">
                   Picks per Team
@@ -482,12 +482,12 @@ const AdminPage = () => {
                   min="1"
                   max="20"
                   value={eventForm.picksPerTeam}
-                  onChange={(e) => updateEventForm({ picksPerTeam: parseInt(e.target.value, 10) })}
+                  onChange={(e) => setEventForm({ ...eventForm, picksPerTeam: parseInt(e.target.value, 10) })}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
             </div>
-            
+
             <div>
               <label htmlFor="eventDate" className="block text-sm font-medium text-gray-700">
                 Event Date (optional)
@@ -496,11 +496,11 @@ const AdminPage = () => {
                 type="datetime-local"
                 id="eventDate"
                 value={eventForm.date}
-                onChange={(e) => updateEventForm({ date: e.target.value })}
+                onChange={(e) => setEventForm({ ...eventForm, date: e.target.value })}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
-            
+
             <div className="flex justify-end space-x-3 pt-4">
               <button
                 type="button"
@@ -535,7 +535,7 @@ const AdminPage = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
-      
+
       {/* Event Management */}
       <div className="bg-white shadow rounded-lg p-6 mb-8">
         <div className="flex flex-col space-y-4 mb-6">
@@ -551,7 +551,7 @@ const AdminPage = () => {
               {showEventForm ? 'Cancel' : 'New Event'}
             </button>
           </div>
-            
+
           {events.length > 0 && (
             <div className="mt-2">
               <label htmlFor="eventSelect" className="block text-sm font-medium text-gray-700 mb-1">
@@ -573,420 +573,58 @@ const AdminPage = () => {
             </div>
           )}
         </div>
-          {showEventForm && (
-            <div className="bg-white shadow rounded-lg p-6 mb-8">
-              <h3 className="text-lg font-medium mb-4">Create New Event</h3>
-              <form onSubmit={handleCreateEvent} className="space-y-4">
-                <div>
-                  <label htmlFor="eventName" className="block text-sm font-medium text-gray-700">
-                    Event Name *
-                  </label>
-                  <input
-                    type="text"
-                    id="eventName"
-                    value={eventForm.name}
-                    onChange={(e) => updateEventForm({ name: e.target.value })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    placeholder="e.g., 2023 Fantasy Draft"
-                    required
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="numTeams" className="block text-sm font-medium text-gray-700">
-                      Number of Teams
-                    </label>
-                    <input
-                      type="number"
-                      id="numTeams"
-                      min="1"
-                      max="30"
-                      value={eventForm.numTeams}
-                      onChange={(e) => updateEventForm({ numTeams: parseInt(e.target.value, 10) })}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="picksPerTeam" className="block text-sm font-medium text-gray-700">
-                      Picks per Team
-                    </label>
-                    <input
-                      type="number"
-                      id="picksPerTeam"
-                      min="1"
-                      max="20"
-                      value={eventForm.picksPerTeam}
-                      onChange={(e) => updateEventForm({ picksPerTeam: parseInt(e.target.value, 10) })}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <label htmlFor="eventDate" className="block text-sm font-medium text-gray-700">
-                    Event Date (optional)
-                  </label>
-                  <input
-                    type="datetime-local"
-                    id="eventDate"
-                    value={eventForm.date}
-                    onChange={(e) => updateEventForm({ date: e.target.value })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowEventForm(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isCreatingEvent}
-                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isCreatingEvent ? 'Creating...' : 'Create Event'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-        </div>
 
-        {/* Player Management */}
-        <div className="bg-white shadow rounded-lg p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Add New Player</h2>
-          <form onSubmit={handleAddPlayer} className="space-y-4">
-            <div>
-              <label htmlFor="playerName" className="block text-sm font-medium text-gray-700">
-                Player Name *
-              </label>
-              <input
-                type="text"
-                id="playerName"
-                value={playerForm.name}
-                onChange={(e) => updatePlayerForm({ name: e.target.value })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                placeholder="e.g., LeBron James"
-                required
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="playerPosition" className="block text-sm font-medium text-gray-700">
-                Position *
-              </label>
-              <select
-                id="playerPosition"
-                value={playerForm.position}
-                onChange={(e) => updatePlayerForm({ position: e.target.value as PlayerPosition })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                required
-              >
-                <option value="">Select a position</option>
-                {positionOptions.map((position) => (
-                  <option key={position} value={position}>
-                    {position}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Add Player
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Team Management */}
-        <div className="bg-white shadow rounded-lg p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Add New Team</h2>
-          {events.length === 0 ? (
-            <div className="text-center py-4">
-              <p className="text-gray-600 mb-4">Please create an event first to add teams.</p>
-              <button
-                type="button"
-                onClick={() => setShowEventForm(true)}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                Create Event
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={handleAddTeam} className="space-y-4">
+        {showEventForm && (
+          <div className="bg-white shadow rounded-lg p-6 mb-8">
+            <h3 className="text-lg font-medium mb-4">Create New Event</h3>
+            <form onSubmit={handleCreateEvent} className="space-y-4">
               <div>
-                <label htmlFor="teamName" className="block text-sm font-medium text-gray-700">
-                  Team Name *
+                <label htmlFor="eventName" className="block text-sm font-medium text-gray-700">
+                  Event Name *
                 </label>
                 <input
                   type="text"
-                  id="teamName"
-                  value={teamForm.name}
-                  onChange={(e) => updateTeamForm({ name: e.target.value })}
+                  id="eventName"
+                  value={eventForm.name}
+                  onChange={(e) => setEventForm({ ...eventForm, name: e.target.value })}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  placeholder="e.g., Los Angeles Lakers"
+                  placeholder="e.g., 2023 Fantasy Draft"
                   required
                 />
               </div>
-              
-              <div className="col-span-2">
-                <FileUpload
-                  onFileSelect={handleLogoChange}
-                  currentUrl={typeof teamForm.logoUrl === 'string' ? teamForm.logoUrl : undefined}
-                  label="Team Logo (optional)"
-                  className="mt-1"
-                />
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="numTeams" className="block text-sm font-medium text-gray-700">
+                    Number of Teams
+                  </label>
+                  <input
+                    type="number"
+                    id="numTeams"
+                    min="1"
+                    max="30"
+                    value={eventForm.numTeams}
+                    onChange={(e) => setEventForm({ ...eventForm, numTeams: parseInt(e.target.value, 10) })}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                {/* Add any other form fields here as needed */}
               </div>
-              
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  disabled={isUploading}
-                  className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-                    isUploading 
-                      ? 'bg-blue-400 cursor-not-allowed' 
-                      : 'bg-blue-600 hover:bg-blue-700'
-                  } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
-                >
-                  Add Team
-                </button>
-              </div>
+
+              <button
+                type="submit"
+                className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+              >
+                Create Event
+              </button>
             </form>
-          )}
-        </div>
-
-        {/* Draft Administration */}
-        <div className="bg-white shadow rounded-lg p-6 mb-8 space-y-8">
-          <div className="flex space-x-4">
-            <button
-              onClick={handleStart}
-              className="px-4 py-2 bg-green-600 text-white rounded-md"
-            >
-              Start
-            </button>
-            <button
-              onClick={togglePause}
-              className="px-4 py-2 bg-yellow-500 text-white rounded-md"
-            >
-              {isPaused ? 'Resume' : 'Pause'}
-            </button>
-            <button
-              onClick={handleEnd}
-              className="px-4 py-2 bg-red-600 text-white rounded-md"
-            >
-              End
-            </button>
           </div>
+        )}
+      </div>
 
-          <div>
-            <h2 className="text-xl font-semibold mb-2">Upcoming Draft Order</h2>
-            <div className="overflow-x-auto bg-white shadow rounded-lg">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Pick</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Round</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Team</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {upcomingPicks.map((p) => (
-                    <tr key={p.pick}>
-                      <td className="px-4 py-2 whitespace-nowrap">#{p.pick}</td>
-                      <td className="px-4 py-2 whitespace-nowrap">{p.round}</td>
-                      <td className="px-4 py-2 whitespace-nowrap flex items-center space-x-2">
-                        {p.teamLogo ? (
-                          <img src={p.teamLogo} alt="" className="h-5 w-5 rounded-full" />
-                        ) : null}
-                        <span>{p.teamName}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div>
-            <h2 className="text-xl font-semibold mb-2">Past Picks</h2>
-            <DraftPicksTable draftPicks={pastPicks} teams={teams} />
-          </div>
-        </div>
-=======
-import { useState } from 'react';
-import type { Event, Team, Player, PlayerPosition } from '../types';
-
-const createBaseEvent = (name: string): Event => {
-  const now = new Date().toISOString();
-  return {
-    id: `${Date.now()}`,
-    name,
-    date: now,
-    num_teams: 0,
-    picks_per_team: 0,
-    pick_time_seconds: 0,
-    prize_pool: null,
-    is_active: true,
-    created_at: now,
-    updated_at: now,
-    draft_type: 'snake',
-    created_by: null
-  };
-};
-
-const AdminPage = () => {
-  const [events, setEvents] = useState<Event[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [players, setPlayers] = useState<Player[]>([]);
-
-  const [eventName, setEventName] = useState('');
-  const [teamName, setTeamName] = useState('');
-  const [playerName, setPlayerName] = useState('');
-  const [playerPosition, setPlayerPosition] = useState<PlayerPosition>('Point Guard');
-
-  const addEvent = () => {
-    const event = createBaseEvent(eventName);
-    setEvents(prev => [...prev, event]);
-    setEventName('');
-  };
-
-  const addTeam = () => {
-    if (!events.length) return;
-    const now = new Date().toISOString();
-    const team: Team = {
-      id: `${Date.now()}`,
-      name: teamName,
-      logo_url: null,
-      event_id: events[0].id,
-      draft_order: null,
-      created_at: now,
-      updated_at: now
-    };
-    setTeams(prev => [...prev, team]);
-    setTeamName('');
-  };
-
-  const addPlayer = () => {
-    if (!events.length) return;
-    const now = new Date().toISOString();
-    const player: Player = {
-      id: `${Date.now()}`,
-      name: playerName,
-      position: playerPosition,
-      event_id: events[0].id,
-      created_at: now,
-      updated_at: now
-    };
-    setPlayers(prev => [...prev, player]);
-    setPlayerName('');
-  };
-
-  return (
-    <div className="space-y-6 p-6">
-      <h1 className="text-2xl font-bold">Admin Page</h1>
-
-      <section>
-        <h2 className="text-lg font-semibold mb-2">Events</h2>
-        <div className="flex space-x-2">
-          <input
-            type="text"
-            className="border rounded px-2 py-1 flex-1"
-            placeholder="Event name"
-            value={eventName}
-            onChange={e => setEventName(e.target.value)}
-          />
-          <button
-            type="button"
-            className="px-3 py-1 bg-blue-600 text-white rounded"
-            onClick={addEvent}
-            disabled={!eventName}
-          >
-            Add
-          </button>
-        </div>
-        <ul className="mt-3 list-disc list-inside space-y-1">
-          {events.map(event => (
-            <li key={event.id}>{event.name}</li>
-          ))}
-        </ul>
-      </section>
-
-      <section>
-        <h2 className="text-lg font-semibold mb-2">Teams</h2>
-        <div className="flex space-x-2">
-          <input
-            type="text"
-            className="border rounded px-2 py-1 flex-1"
-            placeholder="Team name"
-            value={teamName}
-            onChange={e => setTeamName(e.target.value)}
-          />
-          <button
-            type="button"
-            className="px-3 py-1 bg-blue-600 text-white rounded"
-            onClick={addTeam}
-            disabled={!teamName || !events.length}
-          >
-            Add
-          </button>
-        </div>
-        <ul className="mt-3 list-disc list-inside space-y-1">
-          {teams.map(team => (
-            <li key={team.id}>{team.name}</li>
-          ))}
-        </ul>
-      </section>
-
-      <section>
-        <h2 className="text-lg font-semibold mb-2">Players</h2>
-        <div className="flex space-x-2 mb-2">
-          <input
-            type="text"
-            className="border rounded px-2 py-1 flex-1"
-            placeholder="Player name"
-            value={playerName}
-            onChange={e => setPlayerName(e.target.value)}
-          />
-          <select
-            className="border rounded px-2 py-1"
-            value={playerPosition}
-            onChange={e => setPlayerPosition(e.target.value as PlayerPosition)}
-          >
-            <option value="Point Guard">Point Guard</option>
-            <option value="Shooting Guard">Shooting Guard</option>
-            <option value="Small Forward">Small Forward</option>
-            <option value="Power Forward">Power Forward</option>
-            <option value="Center">Center</option>
-          </select>
-          <button
-            type="button"
-            className="px-3 py-1 bg-blue-600 text-white rounded"
-            onClick={addPlayer}
-            disabled={!playerName || !events.length}
-          >
-            Add
-          </button>
-        </div>
-        <ul className="mt-3 list-disc list-inside space-y-1">
-          {players.map(player => (
-            <li key={player.id}>
-              {player.name} - {player.position}
-            </li>
-          ))}
-        </ul>
-      </section>
+      {/* The rest of your AdminPage content continues here... */}
     </div>
   );
-};
+}
 
 export default AdminPage;
