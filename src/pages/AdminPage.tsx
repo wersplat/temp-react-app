@@ -1,9 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import FileUpload from '../components/FileUpload';
-import { playersApi, teamsApi, eventsApi, type PlayerPosition, type Event, type Team, type Player } from '../services/supabase';
-import { useDraft } from '../context/DraftContext/useDraft';
-import DraftPicksTable from '../components/DraftPicksTable';
+import { playersApi, teamsApi, eventsApi, type PlayerPosition, type Event } from '../services/supabase';
 import { supabase } from '../lib/supabase';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
@@ -80,54 +78,7 @@ const AdminPage = () => {
   // Get current event details
   const currentEvent = events.find((event: Event) => event.id === currentEventId);
 
-  const {
-    teams,
-    draftPicks,
-    currentPick,
-    isPaused,
-    togglePause,
-    resetDraft,
-  } = useDraft();
-
-  const picksPerTeam = currentEvent?.picksPerTeam || 15;
-  const totalPicks = teams.length * picksPerTeam;
-
-  const upcomingPicks = useMemo(() => {
-    if (!teams.length) return [] as Array<{ pick: number; round: number; teamName: string; teamLogo?: string | null }>;
-    const sortedTeams = [...teams].sort((a, b) => (a.draft_order || 0) - (b.draft_order || 0));
-    const result: Array<{ pick: number; round: number; teamName: string; teamLogo?: string | null }> = [];
-    let next = currentPick + 1;
-    while (next <= totalPicks && result.length < 20) {
-      const round = Math.ceil(next / sortedTeams.length);
-      const pickInRound = ((next - 1) % sortedTeams.length) + 1;
-      const index = round % 2 === 1 ? pickInRound - 1 : sortedTeams.length - pickInRound;
-      const team = sortedTeams[index];
-      result.push({ pick: next, round, teamName: team.name, teamLogo: team.logo_url });
-      next += 1;
-    }
-    return result;
-  }, [teams, currentPick, totalPicks]);
-
-  const pastPicks = useMemo(() => {
-    return draftPicks
-      .slice()
-      .sort((a, b) => (b.pick_number || b.pick) - (a.pick_number || a.pick));
-  }, [draftPicks]);
-
-  const handleStart = async () => {
-    if (isPaused && currentPick === 1) {
-      togglePause();
-    } else if (isPaused) {
-      togglePause();
-    } else {
-      await resetDraft();
-      togglePause();
-    }
-  };
-
-  const handleEnd = async () => {
-    await resetDraft();
-  };
+  // No draft management functions for now
   
   // Update player form
   const updatePlayerForm = (updates: Partial<PlayerFormData>) => {
@@ -559,6 +510,7 @@ const AdminPage = () => {
               </label>
               <select
                 id="eventSelect"
+                aria-label="Select event"
                 value={currentEventId || ''}
                 onChange={handleEventChange}
                 className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
@@ -620,9 +572,114 @@ const AdminPage = () => {
             </form>
           </div>
         )}
-      </div>
+        </div>
 
-      {/* The rest of your AdminPage content continues here... */}
+        {/* Player Management */}
+        <div className="bg-white shadow rounded-lg p-6 mb-8">
+          <h2 className="text-xl font-semibold mb-4">Add New Player</h2>
+          <form onSubmit={handleAddPlayer} className="space-y-4">
+            <div>
+              <label htmlFor="playerName" className="block text-sm font-medium text-gray-700">
+                Player Name *
+              </label>
+              <input
+                type="text"
+                id="playerName"
+                value={playerForm.name}
+                onChange={(e) => updatePlayerForm({ name: e.target.value })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                placeholder="e.g., LeBron James"
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="playerPosition" className="block text-sm font-medium text-gray-700">
+                Position *
+              </label>
+              <select
+                id="playerPosition"
+                value={playerForm.position}
+                onChange={(e) => updatePlayerForm({ position: e.target.value as PlayerPosition })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                required
+              >
+                <option value="">Select a position</option>
+                {positionOptions.map((position) => (
+                  <option key={position} value={position}>
+                    {position}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Add Player
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* Team Management */}
+        <div className="bg-white shadow rounded-lg p-6 mb-8">
+          <h2 className="text-xl font-semibold mb-4">Add New Team</h2>
+          {events.length === 0 ? (
+            <div className="text-center py-4">
+              <p className="text-gray-600 mb-4">Please create an event first to add teams.</p>
+              <button
+                type="button"
+                onClick={() => setShowEventForm(true)}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                Create Event
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleAddTeam} className="space-y-4">
+              <div>
+                <label htmlFor="teamName" className="block text-sm font-medium text-gray-700">
+                  Team Name *
+                </label>
+                <input
+                  type="text"
+                  id="teamName"
+                  value={teamForm.name}
+                  onChange={(e) => updateTeamForm({ name: e.target.value })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="e.g., Los Angeles Lakers"
+                  required
+                />
+              </div>
+
+              <div className="col-span-2">
+                <FileUpload
+                  onFileSelect={handleLogoChange}
+                  currentUrl={typeof teamForm.logoUrl === 'string' ? teamForm.logoUrl : undefined}
+                  label="Team Logo (optional)"
+                  className="mt-1"
+                />
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={isUploading}
+                  className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+                    isUploading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                  } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
+                >
+                  Add Team
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+
+        {/* The rest of your AdminPage content continues here... */}
     </div>
   );
 }
