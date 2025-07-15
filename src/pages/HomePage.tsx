@@ -18,16 +18,16 @@ const positionOrder: Record<string, number> = {
 
 const HomePage = () => {
   const { user } = useAuth();
-  const { 
-    teams, 
-    currentPick, 
-    isLoading, 
-    togglePause, 
-    resetDraft, 
-    isPaused, 
-    timeLeft, 
-    selectPlayer, 
-    players: availablePlayers,
+  const {
+    teams,
+    currentPick,
+    isLoading,
+    togglePause,
+    resetDraft,
+    isPaused,
+    timeLeft,
+    selectPlayer,
+    availablePlayers,
     playersQuery
   } = useDraft();
 
