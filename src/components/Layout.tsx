@@ -23,7 +23,7 @@ const navigation = [
   { name: 'Teams', href: '/teams', icon: UsersIcon },
   { name: 'Players', href: '/players', icon: UserGroupIcon },
   { name: 'Draft Board', href: '/draft', icon: ClipboardDocumentListIcon },
-  { name: 'Draft Admin', href: '/draft-admin', icon: Cog6ToothIcon },
+  { name: 'Admin', href: '/admin', icon: Cog6ToothIcon },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
