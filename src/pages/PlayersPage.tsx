@@ -15,7 +15,7 @@ export default function PlayersPage() {
       position,
       players: availablePlayers
         .filter((p: Player) => p.position === position)
-        .sort((a: Player, b: Player) => a.name.localeCompare(b.name))
+        .sort((a: Player, b: Player) => a.GT/PSN.localeCompare(b.GT/PSN))
     }));
   }, [availablePlayers]);
 
