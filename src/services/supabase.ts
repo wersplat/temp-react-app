@@ -49,7 +49,7 @@ export type Database = {
       players: {
         Row: {
           id: string;
-          name: string;
+          "GT/PSN": string;
           position: DbPlayerPosition | null;
           created_at: string;
           updated_at: string | null;
@@ -104,7 +104,7 @@ export type Database = {
 
 type PlayerRow = {
   id: string;
-  name: string;
+  "GT/PSN": string;
   position: DbPlayerPosition | null;
   created_at: string;
   updated_at: string | null;
@@ -116,7 +116,7 @@ type PlayerRow = {
 // Player related types
 export interface Player {
   id: string;
-  name: string;
+  "GT/PSN": string;
   position: PlayerPosition | null;
   created_at: string;
   updated_at?: string | null;

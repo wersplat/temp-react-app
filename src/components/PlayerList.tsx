@@ -44,8 +44,8 @@ const sortedPlayers = (players: Player[]): Player[] => {
       return (positionOrder[aPos] || 99) - (positionOrder[bPos] || 99);
     }
     
-    // Then by name
-    return a.name.localeCompare(b.name);
+    // Then by GT/PSN
+    return a["GT/PSN"].localeCompare(b["GT/PSN"]);
   });
 };
 
@@ -55,8 +55,8 @@ const sortedPlayers = (players: Player[]): Player[] => {
  * @component
  * @example
  * const players = [
- *   { id: '1', name: 'John Doe', position: 'QB', team: 'DAL', available: true },
- *   { id: '2', name: 'Jane Smith', position: 'RB', team: 'SF', available: true }
+ *   { id: '1', "GT/PSN": 'John Doe', position: 'QB', team: 'DAL', available: true },
+ *   { id: '2', "GT/PSN": 'Jane Smith', position: 'RB', team: 'SF', available: true }
  * ];
  * 
  * return (
@@ -185,7 +185,7 @@ const PlayerList = (props: PlayerListProps) => {
                   </div>
                   <div className="ml-4">
                     <div className="text-sm font-medium text-gray-900">
-                      {player.name}
+                      {player["GT/PSN"]}
                     </div>
                     <div className="text-xs sm:text-sm text-gray-500 flex items-center">
                       <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs sm:text-xs font-medium bg-blue-100 text-blue-800 mr-1 sm:mr-2">
