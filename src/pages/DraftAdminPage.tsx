@@ -12,6 +12,7 @@ const DraftAdminPage = () => {
     draftPicks,
     currentPick,
     isPaused,
+    timeLeft,
     togglePause,
     resetDraft,
   } = useDraft();
@@ -47,6 +48,15 @@ const DraftAdminPage = () => {
       .sort((a, b) => (b.pick_number || b.pick) - (a.pick_number || a.pick));
   }, [draftPicks]);
 
+  const currentTeamOnClock = useMemo(() => {
+    if (!teams.length || currentPick > totalPicks) return null;
+    const sortedTeams = [...teams].sort((a, b) => (a.draft_order || 0) - (b.draft_order || 0));
+    const round = Math.ceil(currentPick / sortedTeams.length);
+    const pickInRound = ((currentPick - 1) % sortedTeams.length) + 1;
+    const index = round % 2 === 1 ? pickInRound - 1 : sortedTeams.length - pickInRound;
+    return sortedTeams[index];
+  }, [teams, currentPick, totalPicks]);
+
   const handleStart = async () => {
     if (isPaused && currentPick === 1) {
       togglePause();
@@ -64,25 +74,45 @@ const DraftAdminPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex space-x-2">
-        <button
-          onClick={handleStart}
-          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-        >
-          {isPaused && currentPick === 1 ? 'Start Draft' : isPaused ? 'Resume' : 'Restart'}
-        </button>
-        <button
-          onClick={togglePause}
-          className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
-        >
-          {isPaused ? 'Resume' : 'Pause'}
-        </button>
-        <button
-          onClick={handleEnd}
-          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-        >
-          End Draft
-        </button>
+      <div className="flex justify-between items-center">
+        <div className="flex space-x-2">
+          <button
+            onClick={handleStart}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          >
+            {isPaused && currentPick === 1 ? 'Start Draft' : isPaused ? 'Resume' : 'Restart'}
+          </button>
+          <button
+            onClick={togglePause}
+            className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+          >
+            {isPaused ? 'Resume' : 'Pause'}
+          </button>
+          <button
+            onClick={handleEnd}
+            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            End Draft
+          </button>
+        </div>
+        
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <span className="text-gray-600">On the clock:</span>
+            <div className="flex items-center space-x-2">
+              {currentTeamOnClock?.logo_url && (
+                <img src={currentTeamOnClock.logo_url} alt="" className="h-6 w-6 rounded-full" />
+              )}
+              <span className="font-semibold">{currentTeamOnClock?.name}</span>
+            </div>
+          </div>
+          <div className="bg-gray-100 px-4 py-2 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-600">Time remaining:</span>
+              <span className="font-semibold text-lg">{timeLeft}s</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

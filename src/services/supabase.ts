@@ -263,7 +263,7 @@ export const teamsApi = {
     const { data, error } = await supabase
       .from('teams')
       .select('*')
-      .order('gt_psn');
+      .order('draft_order');
     
     if (error) handleApiError(error, 'fetching teams');
     return data || [];
@@ -274,7 +274,7 @@ export const teamsApi = {
       .from('teams')
       .select('*')
       .eq('event_id', eventId)
-      .order('gt_psn');
+      .order('draft_order');
     
     if (error) {
       console.error('Error fetching teams by event:', error);

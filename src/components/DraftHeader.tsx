@@ -10,8 +10,6 @@ interface DraftHeaderProps {
   isAdmin: boolean;
   totalPicks: number;
   remainingPicks: number;
-  onTogglePause: () => void;
-  onResetDraft: () => void;
 }
 
 // Explicit return type for better type safety
@@ -25,8 +23,6 @@ export const DraftHeader: DraftHeaderComponent = ({
   isAdmin,
   totalPicks,
   remainingPicks,
-  onTogglePause,
-  onResetDraft,
 }) => {
   return (
     <div className="bg-white shadow rounded-lg p-6 hover:shadow-lg transition-all duration-200 border border-neutral-100">
@@ -60,23 +56,6 @@ export const DraftHeader: DraftHeaderComponent = ({
             }`}>
               {formatTime(timeLeft)}
             </div>
-          </div>
-          
-          <div className="flex space-x-2">
-            <button
-              onClick={onTogglePause}
-              className="px-4 py-2 bg-neutral-100 hover:bg-neutral-200 rounded-md text-sm font-medium text-neutral-700 transition-colors border border-neutral-200 hover:border-neutral-300"
-            >
-              {isPaused ? 'Resume' : 'Pause'}
-            </button>
-            {isAdmin && (
-              <button
-                onClick={onResetDraft}
-                className="px-4 py-2 bg-accent-50 hover:bg-accent-100 rounded-md text-sm font-medium text-accent-700 transition-colors border border-accent-100 hover:border-accent-200"
-              >
-                Reset Draft
-              </button>
-            )}
           </div>
         </div>
       </div>

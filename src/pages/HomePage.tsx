@@ -22,11 +22,8 @@ const HomePage = () => {
     teams,
     currentPick,
     isLoading,
-    togglePause,
-    resetDraft,
     isPaused,
     timeLeft,
-    selectPlayer,
     availablePlayers,
     playersQuery
   } = useDraft();
@@ -53,10 +50,6 @@ const HomePage = () => {
   }, [teams, currentPick]);
   
   const isAdmin = user?.email?.endsWith('@admin.com') ?? false;
-
-  const handleSelectPlayer = useCallback((player: Player) => {
-    selectPlayer(player.id);
-  }, [selectPlayer]);
 
   // Memoize the players by position calculation
   const { playersByPosition, sortedPositions } = useMemo(() => {
@@ -98,8 +91,8 @@ const HomePage = () => {
         currentPick={currentPick}
         timeLeft={timeLeft}
         isPaused={isPaused}
-        onTogglePause={togglePause}
-        onResetDraft={resetDraft}
+        onTogglePause={() => {}}
+        onResetDraft={() => {}}
         isAdmin={isAdmin}
       />
       
@@ -128,7 +121,6 @@ const HomePage = () => {
                       <PlayerItem 
                         key={player.id}
                         player={player}
-                        onSelect={handleSelectPlayer}
                         disabled={isPaused}
                       />
                     ))}
@@ -145,11 +137,10 @@ const HomePage = () => {
 
 interface PlayerItemProps {
   player: Player;
-  onSelect: (player: Player) => void;
   disabled: boolean;
 }
 
-const PlayerItem = ({ player, onSelect, disabled }: PlayerItemProps) => (
+const PlayerItem = ({ player, disabled }: PlayerItemProps) => (
   <li className="px-4 py-2 hover:bg-gray-50 rounded transition-colors">
     <div className="flex items-center justify-between">
       <div>
@@ -165,18 +156,6 @@ const PlayerItem = ({ player, onSelect, disabled }: PlayerItemProps) => (
           )}
         </div>
       </div>
-      <button
-        onClick={() => onSelect(player)}
-        disabled={disabled}
-        className={`inline-flex items-center px-3 py-1.5 border text-xs font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 transition-transform hover:scale-105 active:scale-95 ${
-          disabled
-            ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-            : 'bg-brand-blue-600 text-white border-transparent hover:bg-brand-blue-700 focus:ring-brand-blue-500'
-        }`}
-        aria-label={`Draft ${player.gt_psn}`}
-      >
-        Draft
-      </button>
     </div>
   </li>
 );

@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
@@ -8,7 +8,9 @@ import {
   draftPicksApi, 
   type Team, 
   type Player, 
-  type DraftPick
+  type DraftPick,
+  eventsApi,
+  type Event
 } from '../../services/supabase';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../hooks/useToast';
@@ -24,8 +26,6 @@ interface DraftState {
   created_at?: string;
 }
 
-const DRAFT_DURATION = 60; // 60 seconds per pick
-
 export const useDraft = (): DraftContextType => {
   const { user } = useAuth();
   const { currentEventId } = useApp();
@@ -35,9 +35,59 @@ export const useDraft = (): DraftContextType => {
   // State
   const [currentPick, setCurrentPick] = useState<number>(1);
   const [isPaused, setIsPaused] = useState<boolean>(true);
-  const [timeLeft, setTimeLeft] = useState<number>(DRAFT_DURATION);
+  const [timeLeft, setTimeLeft] = useState<number>(0); 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   
+  // Fetch current event to get pick_time_seconds
+  const { data: currentEvent } = useQuery<Event | null, Error>({
+    queryKey: ['currentEvent', currentEventId],
+    queryFn: () => currentEventId ? eventsApi.getById(currentEventId) : null,
+    enabled: !!currentEventId,
+  });
+
+  // Timer effect
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+
+    // Initialize timeLeft with pick_time_seconds when event changes
+    if (currentEvent?.pickTimeSeconds) {
+      setTimeLeft(currentEvent.pickTimeSeconds);
+    }
+
+    // Start timer if not paused and timeLeft > 0
+    if (!isPaused && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev > 0) {
+            return prev - 1;
+          }
+          return 0;
+        });
+      }, 1000);
+    }
+
+    // Reset timer when draft is paused
+    if (isPaused) {
+      if (currentEvent?.pickTimeSeconds) {
+        setTimeLeft(currentEvent.pickTimeSeconds);
+      }
+    }
+
+    // Reset timer when time runs out
+    if (timeLeft === 0) {
+      if (currentEvent?.pickTimeSeconds) {
+        setTimeLeft(currentEvent.pickTimeSeconds);
+      }
+    }
+
+    // Clean up timer
+    return () => {
+      if (timer) {
+        clearInterval(timer);
+      }
+    };
+  }, [isPaused, timeLeft, currentEvent?.pickTimeSeconds]);
+
   // Fetch teams, players, and draft picks with event filtering
   const teamsQuery = useQuery<Team[], Error>({
     queryKey: ['teams', currentEventId],
@@ -199,7 +249,7 @@ export const useDraft = (): DraftContextType => {
         
         // Update local state
         setCurrentPick(prev => prev + 1);
-        setTimeLeft(DRAFT_DURATION);
+        setTimeLeft(currentEvent?.pickTimeSeconds ?? 0);
         
         // Invalidate queries to refresh data
         await queryClient.invalidateQueries({ queryKey: ['draftPicks', currentEventId] });
@@ -257,7 +307,7 @@ export const useDraft = (): DraftContextType => {
       // Update local state
       setCurrentPick(1);
       setIsPaused(true);
-      setTimeLeft(DRAFT_DURATION);
+      setTimeLeft(currentEvent?.pickTimeSeconds ?? 0);
       
       // Invalidate queries to refresh data
       await queryClient.invalidateQueries({ queryKey: ['draftPicks', currentEventId] });
@@ -338,7 +388,7 @@ export const useDraft = (): DraftContextType => {
       
       // Update local state
       setCurrentPick(prev => prev + 1);
-      setTimeLeft(DRAFT_DURATION);
+      setTimeLeft(currentEvent?.pickTimeSeconds ?? 0);
       
       toast(`${currentTeamTurn?.name || 'Team'} skipped their pick`, 'info');
     } catch (error) {
