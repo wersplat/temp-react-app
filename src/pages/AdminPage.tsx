@@ -1,4 +1,3 @@
- codex/fix-lint-errors-on-adminpage
 import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-hot-toast';
 import FileUpload from '../components/FileUpload';
@@ -986,7 +985,6 @@ const AdminPage = () => {
           ))}
         </ul>
       </section>
- main
     </div>
   );
 };
