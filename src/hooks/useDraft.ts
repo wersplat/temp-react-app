@@ -78,6 +78,7 @@ export function useDraft(): UseDraftReturn {
         .from('players')
         .select('*')
         .eq('event_id', currentEventId)
+        .eq('drafted', false)
         .order('name');
       
       if (error) {
