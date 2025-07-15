@@ -626,7 +626,7 @@ export const draftPicksApi = {
         // Safely handle team data
         const teamData = pick.team ? {
           id: pick.team.id,
-          "gt_psn": pick.team["gt_psn"],
+          name: pick.team.name,
           logo_url: pick.team.logo_url,
           created_at: pick.team.created_at,
           updated_at: pick.team.updated_at || now,
@@ -674,7 +674,7 @@ export const draftPicksApi = {
         .from('draft_picks')
         .select(`
           *,
-          team:teams!inner(id, gt_psn, logo_url, created_at, updated_at, event_id)
+          team:teams!inner(id, name, logo_url, created_at, updated_at, event_id)
         `)
         .eq('event_id', eventId)
         .order('pick', { ascending: true });
@@ -726,7 +726,7 @@ export const draftPicksApi = {
           notes: pick.notes || null,
           team: pick.team ? {
             id: pick.team.id,
-            "gt_psn": pick.team["gt_psn"],
+            name: pick.team.name,
             logo_url: pick.team.logo_url,
             created_at: pick.team.created_at,
             updated_at: pick.team.updated_at || now,
@@ -782,7 +782,7 @@ export const draftPicksApi = {
         // Safely handle team data
         const teamData = pick.team ? {
           id: pick.team.id,
-          "gt_psn": pick.team["gt_psn"],
+          name: pick.team.name,
           logo_url: pick.team.logo_url,
           created_at: pick.team.created_at,
           updated_at: pick.team.updated_at || now,
@@ -791,7 +791,7 @@ export const draftPicksApi = {
 
         // Get player data if available
         const player = typeof pick.player === 'string' ? playerMap.get(pick.player) : pick.player;
-        const playerName = player?.name || (typeof pick.player === 'string' ? pick.player : '');
+        const playerName = player?.gt_psn || (typeof pick.player === 'string' ? pick.player : '');
         
         // Create the draft pick with proper typing
         return {
@@ -832,7 +832,7 @@ export const draftPicksApi = {
       const dbPick = {
         event_id: pickData.event_id,
         team_id: pickData.team_id || null,
-        player: typeof pickData.player === 'string' ? pickData.player : pickData.player?.name || '',
+        player: typeof pickData.player === 'string' ? pickData.player : pickData.player?.gt_psn || '',
         player_position: playerPos,
         pick: pickData.pick || 1, // Default to 1 if not provided
         round: pickData.round || Math.ceil((pickData.pick || 1) / 10), // Default to round 1 if not provided
@@ -927,7 +927,7 @@ export const draftPicksApi = {
         id: resultData.id,
         event_id: resultData.event_id,
         team_id: resultData.team_id,
-        player: typeof pickData.player === 'string' ? pickData.player : pickData.player?.name || '',
+        player: typeof pickData.player === 'string' ? pickData.player : pickData.player?.gt_psn || '',
         player_id: typeof pickData.player === 'string' ? null : (pickData.player as any)?.id || null,
         pick: resultData.pick,
         pick_number: resultData.pick, // Map 'pick' to 'pick_number' for backward compatibility

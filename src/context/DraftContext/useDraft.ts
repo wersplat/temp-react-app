@@ -204,7 +204,7 @@ export const useDraft = (): DraftContextType => {
         // Invalidate queries to refresh data
         await queryClient.invalidateQueries({ queryKey: ['draftPicks', currentEventId] });
         
-        toast(`${player.name} was drafted by ${currentTeamTurn?.name}`, 'success');
+        toast(`${player.gt_psn} was drafted by ${currentTeamTurn?.name}`, 'success');
         
         return;
       } catch (error) {

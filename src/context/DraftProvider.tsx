@@ -235,7 +235,7 @@ export function DraftProvider({ children }: { children: ReactNode }) {
     const draftedPlayerIds = draftPicks.map(pick => {
       if (typeof pick.player === 'string') {
         // If player is a string (name), find the player with that name
-        const player = players.find(p => p.name === pick.player);
+        const player = players.find(p => p.gt_psn === pick.player);
         return player?.id;
       }
       // If player is an object, use its ID

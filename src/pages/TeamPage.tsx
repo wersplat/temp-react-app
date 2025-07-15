@@ -63,11 +63,11 @@ const TeamPage = () => {
                 <img 
                   className="h-24 w-24 rounded-full" 
                   src={team.logo_url} 
-                  alt={`${team?.gt_psn || 'Team'} logo`} 
+                  alt={`${team?.name || 'Team'} logo`} 
                 />
               ) : (
                 <div className="h-24 w-24 rounded-full bg-gray-200 flex items-center justify-center text-4xl font-bold text-gray-400">
-                  {team?.gt_psn?.charAt(0) || '?'}
+                  {team?.name?.charAt(0) || '?'}
                 </div>
               )}
             </div>
@@ -129,7 +129,7 @@ const TeamPage = () => {
                           #{pick.pick}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {typeof pick.player === 'string' ? pick.player : pick.player?.name || 'Unknown Player'}
+                          {typeof pick.player === 'string' ? pick.player : pick.player?.gt_psn || 'Unknown Player'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {pick.player?.position || 'N/A'}

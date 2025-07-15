@@ -29,7 +29,7 @@ export interface Team {
 
 export interface Player {
   id: string;
-  "gt_psn": string;
+  gt_psn: string;
   position: PlayerPosition;
   event_id: string;
   created_at: string;
@@ -49,7 +49,7 @@ export interface DraftPick {
     logo_url: string | null;
   };
   player?: {
-    "gt_psn": string;
+    gt_psn: string;
     position: PlayerPosition;
   } | null;
 }
@@ -66,7 +66,7 @@ export interface EventFormData {
 }
 
 export interface PlayerFormData {
-  "gt_psn": string;
+  gt_psn: string;
   position: PlayerPosition;
 }
 
@@ -100,7 +100,7 @@ export interface DraftPickWithDetails extends DraftPick {
     logo_url: string | null;
   };
   player: {
-    "gt_psn": string;
+    gt_psn: string;
     position: PlayerPosition;
   } | null;
 }

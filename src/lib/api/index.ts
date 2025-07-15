@@ -53,14 +53,14 @@ export const eventsApi = {
 
 export const playersApi = {
   create: async (
-    name: string,
+    gt_psn: string,
     position: string,
     eventId: string
   ): Promise<ApiResponse<Player>> => {
     const response = await fetch(`${API_BASE_URL}/players`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, position, event_id: eventId })
+      body: JSON.stringify({ gt_psn, position, event_id: eventId })
     });
     return handleResponse<Player>(response);
   },
