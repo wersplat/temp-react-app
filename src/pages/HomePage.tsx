@@ -153,7 +153,7 @@ const PlayerItem = ({ player, onSelect, disabled }: PlayerItemProps) => (
   <li className="px-4 py-2 hover:bg-gray-50 rounded transition-colors">
     <div className="flex items-center justify-between">
       <div>
-        <p className="text-sm font-medium text-gray-900">{player.GT/PSN}</p>
+        <p className="text-sm font-medium text-gray-900">{player.GT_PSN}</p>
         <div className="flex items-center space-x-2 text-sm text-gray-500 mt-1">
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
             {getPositionAbbreviation(player.position as PlayerPosition)}
@@ -173,7 +173,7 @@ const PlayerItem = ({ player, onSelect, disabled }: PlayerItemProps) => (
             ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
             : 'bg-brand-blue-600 text-white border-transparent hover:bg-brand-blue-700 focus:ring-brand-blue-500'
         }`}
-        aria-label={`Draft ${player.GT/PSN}`}
+        aria-label={`Draft ${player.GT_PSN}`}
       >
         Draft
       </button>

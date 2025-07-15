@@ -16,7 +16,7 @@ type EventFormData = {
 };
 
 type PlayerFormData = {
-  "GT/PSN": string;
+  "GT_PSN": string;
   position: PlayerPosition | '';
 };
 
@@ -38,7 +38,7 @@ const AdminPage = () => {
   const navigate = useNavigate();
   const { currentEventId, setCurrentEventId } = useApp();
   const [playerForm, setPlayerForm] = useState<PlayerFormData>({
-    "GT/PSN": '',
+    "GT_PSN": '',
     position: ''
   });
   
@@ -173,7 +173,7 @@ const AdminPage = () => {
   const handleAddPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!playerForm.GT/PSN.trim() || !playerForm.position) {
+    if (!playerForm.GT_PSN.trim() || !playerForm.position) {
       toast.error('Player name and position are required');
       return;
     }
@@ -185,12 +185,12 @@ const AdminPage = () => {
     
     try {
       await playersApi.create(
-        playerForm.GT/PSN.trim(), 
+        playerForm.GT_PSN.trim(), 
         playerForm.position as PlayerPosition,
         currentEventId
       );
       toast.success('Player added successfully');
-      setPlayerForm({ "GT/PSN": '', position: '' });
+      setPlayerForm({ "GT_PSN": '', position: '' });
     } catch (error) {
       console.error('Error adding player:', error);
       toast.error(`Failed to add player: ${(error as Error).message}`);

@@ -40,7 +40,7 @@ interface TeamWithPicks extends Team {
 // Helper function to get player name from player data that could be string or Player object
 const getPlayerName = (player: string | Player): string => {
   if (!player) return '';
-  return typeof player === 'string' ? player : player.GT/PSN;
+  return typeof player === 'string' ? player : player.GT_PSN;
 };
 
 // Helper function to get player position from player data that could be string or Player object

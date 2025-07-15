@@ -28,7 +28,7 @@ const DraftPicksList: React.FC<DraftPicksListProps> = ({ picks }) => {
             </div>
             <div className="ml-4">
               <div className="text-sm font-medium text-gray-900">
-                {pick.player["GT/PSN"]}
+                {pick.player["GT_PSN"]}
               </div>
               <div className="flex items-center mt-1">
                 <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-medium bg-blue-100 text-blue-800 mr-2">

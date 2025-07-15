@@ -44,8 +44,8 @@ const sortedPlayers = (players: Player[]): Player[] => {
       return (positionOrder[aPos] || 99) - (positionOrder[bPos] || 99);
     }
     
-    // Then by GT/PSN
-    return a["GT/PSN"].localeCompare(b["GT/PSN"]);
+    // Then by GT_PSN
+    return a["GT_PSN"].localeCompare(b["GT_PSN"]);
   });
 };
 
@@ -55,8 +55,8 @@ const sortedPlayers = (players: Player[]): Player[] => {
  * @component
  * @example
  * const players = [
- *   { id: '1', "GT/PSN": 'John Doe', position: 'QB', team: 'DAL', available: true },
- *   { id: '2', "GT/PSN": 'Jane Smith', position: 'RB', team: 'SF', available: true }
+ *   { id: '1', "GT_PSN": 'John Doe', position: 'QB', team: 'DAL', available: true },
+ *   { id: '2', "GT_PSN": 'Jane Smith', position: 'RB', team: 'SF', available: true }
  * ];
  * 
  * return (
@@ -174,18 +174,18 @@ const PlayerList = (props: PlayerListProps) => {
                 }
               }}
               tabIndex={0}
-              aria-label={`Select ${player["GT/PSN"]}, ${player.position}, ${player.team_name}`}
+              aria-label={`Select ${player["GT_PSN"]}, ${player.position}, ${player.team_name}`}
             >
               <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                 <div className="flex items-center">
                   <div className="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
                     <span className="text-gray-700 font-medium">
-                      {player["GT/PSN"].split(' ').map(n => n[0]).join('').toUpperCase()}
+                      {player["GT_PSN"].split(' ').map(n => n[0]).join('').toUpperCase()}
                     </span>
                   </div>
                   <div className="ml-4">
                     <div className="text-sm font-medium text-gray-900">
-                      {player["GT/PSN"]}
+                      {player["GT_PSN"]}
                     </div>
                     <div className="text-xs sm:text-sm text-gray-500 flex items-center">
                       <span className="inline-flex items-center px-1.5 py-0.5 rounded text-2xs sm:text-xs font-medium bg-blue-100 text-blue-800 mr-1 sm:mr-2">
@@ -213,7 +213,7 @@ const PlayerList = (props: PlayerListProps) => {
                     type="button"
                     className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-brand-blue-600 hover:bg-brand-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue-500"
                     onClick={() => onSelectPlayer?.(player)}
-                    aria-label={`Select ${player["GT/PSN"]}`}
+                    aria-label={`Select ${player["GT_PSN"]}`}
                   >
                     <span className="hidden sm:inline">Draft</span>
                     <span className="sm:hidden">+</span>
