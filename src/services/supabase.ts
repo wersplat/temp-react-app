@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 export type DbPlayerPosition = 
   | 'Point Guard' 
   | 'Shooting Guard' 
+  | 'Small Forward' 
   | 'Lock' 
   | 'Power Forward' 
   | 'Center';
