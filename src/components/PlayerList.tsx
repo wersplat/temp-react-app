@@ -174,13 +174,13 @@ const PlayerList = (props: PlayerListProps) => {
                 }
               }}
               tabIndex={0}
-              aria-label={`Select ${player.name}, ${player.position}, ${player.team_name}`}
+              aria-label={`Select ${player["GT/PSN"]}, ${player.position}, ${player.team_name}`}
             >
               <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                 <div className="flex items-center">
                   <div className="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
                     <span className="text-gray-700 font-medium">
-                      {player.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      {player["GT/PSN"].split(' ').map(n => n[0]).join('').toUpperCase()}
                     </span>
                   </div>
                   <div className="ml-4">
@@ -213,7 +213,7 @@ const PlayerList = (props: PlayerListProps) => {
                     type="button"
                     className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-brand-blue-600 hover:bg-brand-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue-500"
                     onClick={() => onSelectPlayer?.(player)}
-                    aria-label={`Select ${player.name}`}
+                    aria-label={`Select ${player["GT/PSN"]}`}
                   >
                     <span className="hidden sm:inline">Draft</span>
                     <span className="sm:hidden">+</span>

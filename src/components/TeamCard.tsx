@@ -137,7 +137,7 @@ const TeamCard: React.FC<TeamCardProps> = ({
       {isCurrentTeam && isDraftInProgress && onSelectPlayer && (
         <div className="border-t border-gray-200">
           <div id={`team-${team.id}-available`} className="sr-only">
-            Available players for {team.name}. Use arrow keys to navigate and Enter to select a player.
+            Available players for {team["GT/PSN"]}. Use arrow keys to navigate and Enter to select a player.
           </div>
           <div className="px-3 py-2 sm:px-4 sm:py-3 bg-gray-50">
             <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">

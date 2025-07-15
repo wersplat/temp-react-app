@@ -80,7 +80,7 @@ export type Database = {
       teams: {
         Row: {
           id: string;
-          name: string;
+          "GT/PSN": string;
           logo_url: string | null;
           created_at: string;
           updated_at: string | null;
@@ -149,7 +149,7 @@ export const subscribeToPlayerUpdates = (callback: () => void) => {
 // Application types
 export type Team = {
   id: string;
-  name: string;
+  "GT/PSN": string;
   logo_url: string | null;
   created_at: string;
   updated_at: string | null;
@@ -178,7 +178,7 @@ type DbDraftPick = {
 type DraftPickWithTeam = DbDraftPick & {
   team: {
     id: string;
-    name: string;
+    "GT/PSN": string;
     logo_url: string | null;
     created_at: string;
     updated_at: string | null;
@@ -263,7 +263,7 @@ export const teamsApi = {
     const { data, error } = await supabase
       .from('teams')
       .select('*')
-      .order('name');
+      .order('GT/PSN');
     
     if (error) handleApiError(error, 'fetching teams');
     return data || [];
@@ -274,7 +274,7 @@ export const teamsApi = {
       .from('teams')
       .select('*')
       .eq('event_id', eventId)
-      .order('name');
+      .order('GT/PSN');
     
     if (error) {
       console.error('Error fetching teams by event:', error);
@@ -294,7 +294,11 @@ export const teamsApi = {
     return data;
   },
 
-  create: async (name: string, eventId: string, logoUrl?: string | null): Promise<Team | null> => {
+  create: async (
+    name: string,
+    eventId: string,
+    logoUrl?: string | null
+  ): Promise<Team | null> => {
     const isAuthenticated = await ensureAuth();
     if (!isAuthenticated) {
       throw new Error('You must be authenticated to create a team');
@@ -337,7 +341,7 @@ export const teamsApi = {
     const { data: existingTeam } = await supabase
       .from('teams')
       .select('id')
-      .eq('name', name.trim())
+      .eq('GT/PSN', name.trim())
       .eq('event_id', eventId)
       .single();
 
@@ -380,7 +384,7 @@ export const teamsApi = {
     const { data, error } = await supabase
       .from('teams')
       .insert({ 
-        name: name.trim(), 
+        "GT/PSN": name.trim(), 
         slug: uniqueSlug, 
         logo_url: logoUrl?.trim() || null, 
         event_id: eventId,
@@ -404,7 +408,7 @@ export const playersApi = {
     const { data, error } = await supabase
       .from('players')
       .select('*')
-      .order('name');
+      .order('GT/PSN');
     
     if (error) {
       handleApiError(error, 'fetching players');
@@ -413,7 +417,7 @@ export const playersApi = {
     
     return (data as PlayerRow[]).map(player => ({
       id: player.id,
-      name: player.name,
+      "GT/PSN": player["GT/PSN"],
       position: player.position,
       created_at: player.created_at,
       updated_at: player.updated_at,
@@ -428,7 +432,7 @@ export const playersApi = {
       .from('players')
       .select('*')
       .eq('event_id', eventId)
-      .order('name');
+      .order('GT/PSN');
     
     if (error) {
       console.error('Error fetching players by event:', error);
@@ -437,7 +441,7 @@ export const playersApi = {
     
     return (data as PlayerRow[]).map(player => ({
       id: player.id,
-      name: player.name,
+      "GT/PSN": player["GT/PSN"],
       position: player.position,
       created_at: player.created_at,
       updated_at: player.updated_at,
@@ -451,13 +455,13 @@ export const playersApi = {
     let queryBuilder = supabase
       .from('players')
       .select('*')
-      .ilike('name', `%${query}%`);
+      .ilike('GT/PSN', `%${query}%`);
 
     if (eventId) {
       queryBuilder = queryBuilder.eq('event_id', eventId);
     }
 
-    const { data, error } = await queryBuilder.order('name');
+    const { data, error } = await queryBuilder.order('GT/PSN');
 
     if (error) {
       console.error('Error searching players:', error);
@@ -466,7 +470,7 @@ export const playersApi = {
 
     return (data as PlayerRow[]).map(player => ({
       id: player.id,
-      name: player.name,
+      "GT/PSN": player["GT/PSN"],
       position: player.position,
       created_at: player.created_at,
       updated_at: player.updated_at,
@@ -489,7 +493,7 @@ export const playersApi = {
     const { data, error } = await supabase
       .from('players')
       .insert({ 
-        name, 
+        "GT/PSN": name, 
         position, 
         event_id: eventId 
       })
@@ -504,7 +508,7 @@ export const playersApi = {
     const playerData = data as PlayerRow;
     return {
       id: playerData.id,
-      name: playerData.name,
+      "GT/PSN": playerData["GT/PSN"],
       position: playerData.position,
       created_at: playerData.created_at,
       updated_at: playerData.updated_at,
@@ -561,7 +565,7 @@ export const playersApi = {
       // Update the draft pick with the player and team
       const updateData: DraftPickUpdateData = {
         team_id: teamId,
-        player: player.name, // Store the player's name directly
+        player: player["GT/PSN"], // Store the player's name directly
         player_id: player.id, // Store the player's ID
         player_position: player.position, // Add the player's position
         traded: false,
@@ -608,10 +612,10 @@ export const draftPicksApi = {
         const { data: players } = await supabase
           .from('players')
           .select('*')
-          .in('name', playerNames);
+          .in('GT/PSN', playerNames);
         
         if (players) {
-          playerMap = new Map(players.map(p => [p.name, p]));
+          playerMap = new Map(players.map(p => [p["GT/PSN"], p]));
         }
       }
 
@@ -622,7 +626,7 @@ export const draftPicksApi = {
         // Safely handle team data
         const teamData = pick.team ? {
           id: pick.team.id,
-          name: pick.team.name,
+          "GT/PSN": pick.team["GT/PSN"],
           logo_url: pick.team.logo_url,
           created_at: pick.team.created_at,
           updated_at: pick.team.updated_at || now,
@@ -631,7 +635,7 @@ export const draftPicksApi = {
 
         // Get player data if available
         const player = playerMap.get(pick.player);
-        const playerName = player?.name || pick.player;
+        const playerName = player?.["GT/PSN"] || pick.player;
         
         // Define the type for the database pick with optional updated_at
         type DatabasePick = typeof pick & { updated_at?: string };
@@ -670,7 +674,7 @@ export const draftPicksApi = {
         .from('draft_picks')
         .select(`
           *,
-          team:teams!inner(id, name, logo_url, created_at, updated_at, event_id)
+          team:teams!inner(id, GT/PSN, logo_url, created_at, updated_at, event_id)
         `)
         .eq('event_id', eventId)
         .order('pick', { ascending: true });
@@ -693,16 +697,16 @@ export const draftPicksApi = {
       const { data: players } = await supabase
         .from('players')
         .select('*')
-        .in('name', playerNames);
+        .in('GT/PSN', playerNames);
 
       // Create a map of player name to player for easy lookup
-      const playerMap = new Map(players?.map(player => [player.name, player]) || []);
+      const playerMap = new Map(players?.map(player => [player["GT/PSN"], player]) || []);
       const now = new Date().toISOString();
 
       // Convert the database draft picks to our application format
       return (typedPicksData || []).map((pick): DraftPick => {
         const player = playerMap.get(pick.player);
-        const playerName = player?.name || pick.player;
+        const playerName = player?.["GT/PSN"] || pick.player;
         
         // Create the draft pick with all required fields
         const draftPick: DraftPick = {
@@ -722,7 +726,7 @@ export const draftPicksApi = {
           notes: pick.notes || null,
           team: pick.team ? {
             id: pick.team.id,
-            name: pick.team.name,
+            "GT/PSN": pick.team["GT/PSN"],
             logo_url: pick.team.logo_url,
             created_at: pick.team.created_at,
             updated_at: pick.team.updated_at || now,
@@ -764,10 +768,10 @@ export const draftPicksApi = {
         const { data: players } = await supabase
           .from('players')
           .select('*')
-          .in('name', playerNames);
+          .in('GT/PSN', playerNames);
         
         if (players) {
-          playerMap = new Map(players.map(p => [p.name, p]));
+          playerMap = new Map(players.map(p => [p["GT/PSN"], p]));
         }
       }
 
@@ -778,7 +782,7 @@ export const draftPicksApi = {
         // Safely handle team data
         const teamData = pick.team ? {
           id: pick.team.id,
-          name: pick.team.name,
+          "GT/PSN": pick.team["GT/PSN"],
           logo_url: pick.team.logo_url,
           created_at: pick.team.created_at,
           updated_at: pick.team.updated_at || now,
