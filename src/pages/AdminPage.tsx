@@ -16,7 +16,7 @@ type EventFormData = {
 };
 
 type PlayerFormData = {
-  "GT_PSN": string;
+  gt_psn: string;
   position: PlayerPosition | '';
 };
 
@@ -38,7 +38,7 @@ const AdminPage = () => {
   const navigate = useNavigate();
   const { currentEventId, setCurrentEventId } = useApp();
   const [playerForm, setPlayerForm] = useState<PlayerFormData>({
-    "GT_PSN": '',
+    gt_psn: '',
     position: ''
   });
   
@@ -173,7 +173,7 @@ const AdminPage = () => {
   const handleAddPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!playerForm.GT_PSN.trim() || !playerForm.position) {
+    if (!playerForm.gt_psn.trim() || !playerForm.position) {
       toast.error('Player name and position are required');
       return;
     }
@@ -185,12 +185,12 @@ const AdminPage = () => {
     
     try {
       await playersApi.create(
-        playerForm.GT_PSN.trim(), 
+        playerForm.gt_psn.trim(), 
         playerForm.position as PlayerPosition,
         currentEventId
       );
       toast.success('Player added successfully');
-      setPlayerForm({ "GT_PSN": '', position: '' });
+      setPlayerForm({ "gt_psn": '', position: '' });
     } catch (error) {
       console.error('Error adding player:', error);
       toast.error(`Failed to add player: ${(error as Error).message}`);
@@ -585,8 +585,8 @@ const AdminPage = () => {
               <input
                 type="text"
                 id="playerName"
-                value={playerForm.name}
-                onChange={(e) => updatePlayerForm({ name: e.target.value })}
+                value={playerForm.gt_psn}
+                onChange={(e) => updatePlayerForm({ gt_psn: e.target.value })}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 placeholder="e.g., LeBron James"
                 required

@@ -12,9 +12,9 @@ import {
   ClipboardDocumentListIcon,
   Cog6ToothIcon,
   UserCircleIcon as UserIcon,
-  ArrowRightOnRectangleIcon,
   MagnifyingGlassIcon as SearchIcon,
-  ChevronDownIcon
+  ChevronDownIcon,
+  ArrowRightIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../context/AuthContext/useAuth';
 
@@ -126,7 +126,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                         className="text-sm font-medium text-gray-500 group-hover:text-gray-700 flex items-center"
                       >
                         Sign out
-                        <ArrowRightOnRectangleIcon className="ml-1 h-4 w-4" />
+                        <ArrowRightIcon className="ml-1 h-4 w-4" />
                       </button>
                     </div>
                   </div>
@@ -185,7 +185,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     className="text-xs font-medium text-gray-500 group-hover:text-gray-700 flex items-center"
                   >
                     Sign out
-                    <ArrowRightOnRectangleIcon className="ml-1 h-3.5 w-3.5" />
+                    <ArrowRightIcon className="ml-1 h-3.5 w-3.5" />
                   </button>
                 </div>
               </div>

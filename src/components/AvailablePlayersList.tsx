@@ -38,11 +38,11 @@ const AvailablePlayersList: React.FC<AvailablePlayersListProps> = ({
               }}
               className="w-full text-left focus:outline-none focus:ring-2 focus:ring-brand-blue-500 focus:ring-offset-2 rounded-md p-2"
               aria-describedby={`team-${teamId}-available`}
-              aria-label={`Select ${player["GT_PSN"]}, ${player.position || 'Flex'}${player.team_name ? `, ${player.team_name}` : ''}`}
+              aria-label={`Select ${player["gt_psn"]}, ${player.position || 'Flex'}${player.team_name ? `, ${player.team_name}` : ''}`}
               tabIndex={0}
             >
               <p className="text-sm font-medium text-gray-900 truncate">
-                {player["GT_PSN"]}
+                {player["gt_psn"]}
               </p>
               <p className="text-xs text-gray-500 flex items-center mt-1">
                 <span className="inline-flex items-center px-2 py-0.5 rounded text-2xs font-medium bg-brand-blue-100 text-brand-blue-800 mr-2">

@@ -63,11 +63,11 @@ const TeamPage = () => {
                 <img 
                   className="h-24 w-24 rounded-full" 
                   src={team.logo_url} 
-                  alt={`${team?.GT_PSN || 'Team'} logo`} 
+                  alt={`${team?.gt_psn || 'Team'} logo`} 
                 />
               ) : (
                 <div className="h-24 w-24 rounded-full bg-gray-200 flex items-center justify-center text-4xl font-bold text-gray-400">
-                  {team?.GT_PSN?.charAt(0) || '?'}
+                  {team?.gt_psn?.charAt(0) || '?'}
                 </div>
               )}
             </div>
